@@ -1,0 +1,15 @@
+[output]
+name = "MultiTest"
+file = "multi_test.winmd"
+
+[[partition]]
+namespace = "MultiTest.Types"
+library = "simple"
+headers = ["types.h"]
+traverse = ["types.h"]
+
+[[partition]]
+namespace = "MultiTest.Widgets"
+library = "simple"
+headers = ["types.h", "widget.h"]
+traverse = ["widget.h"]

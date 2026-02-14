@@ -1,0 +1,9 @@
+[output]
+name = "SimpleTest"
+file = "simple_test.winmd"
+
+[[partition]]
+namespace = "SimpleTest"
+library = "simple"
+headers = ["simple.h"]
+traverse = ["simple.h"]

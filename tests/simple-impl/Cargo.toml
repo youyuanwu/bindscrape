@@ -1,0 +1,8 @@
+[package]
+name = "simple-impl"
+version = "0.1.0"
+edition.workspace = true
+
+[lib]
+name = "simple"              # must match ImplMap library field
+crate-type = ["cdylib"]
