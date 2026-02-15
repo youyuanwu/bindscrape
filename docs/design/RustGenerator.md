@@ -47,8 +47,7 @@ C/C++ Headers
 
 ## Implementation Status
 
-> **Status: v2 implemented and tested.** 124 tests passing (30 roundtrip +
-> 90 E2E + 3 doc-tests + 1 freshness), clippy clean.
+> **Status: v2 implemented and tested.** Clippy clean.
 
 ### What Is Implemented
 
@@ -75,8 +74,8 @@ C/C++ Headers
 | Function deduplication | `collect_functions()` uses `HashSet<String>` to skip duplicates from glibc `__REDIRECT` macros |
 | PtrConst workaround | Always emit `PtrMut` — `ELEMENT_TYPE_CMOD_REQD` mid-chain in pointer blobs panics windows-bindgen. Const-ness tracked by `ConstAttribute` on parameters. |
 | Warn-and-skip error handling | Non-fatal failures log `tracing::warn!` and skip the declaration |
-| Round-trip integration tests | 30 tests across 4 files |
-| E2E integration tests | 90 tests across 4 crates (zlib against real `libz.so`, POSIX file I/O, mmap, dirent, sockets, inet, netdb) |
+| Round-trip integration tests | Across 4 files |
+| E2E integration tests | Across 4 crates (zlib against real `libz.so`, POSIX file I/O, mmap, dirent, sockets, inet, netdb, signal) |
 | Package-mode code generation | `bns-posix-gen` drives bindscrape + `windows-bindgen --package` to generate the `bns-posix` source tree with feature-gated sub-modules |
 
 ### What Is NOT Yet Implemented
@@ -104,10 +103,10 @@ bindscrape/
 │   ├── extract.rs           # clang Entity/Type → model (613 LOC)
 │   └── emit.rs              # model → windows-metadata writer calls (419 LOC)
 └── tests/
-    ├── roundtrip_simple.rs   # 10 tests — simple.h fixture (297 LOC)
-    ├── roundtrip_multi.rs    # 5 tests — multi-partition fixture (141 LOC)
-    ├── roundtrip_posixfile.rs # 9 tests — bns-posix fixture (245 LOC)
-    └── roundtrip_zlib.rs     # 6 tests — zlib system header (200 LOC)
+    ├── roundtrip_simple.rs   # simple.h fixture (297 LOC)
+    ├── roundtrip_multi.rs    # multi-partition fixture (141 LOC)
+    ├── roundtrip_posixfile.rs # bns-posix fixture (245 LOC)
+    └── roundtrip_zlib.rs     # zlib system header (200 LOC)
 
 tests/
 ├── fixtures/
@@ -116,9 +115,9 @@ tests/
 │   ├── bns-posix/ (bns-posix.toml — POSIX headers)
 │   └── zlib/ (zlib.toml — references system headers)
 ├── simple-impl/              # Native C lib for e2e-simple
-├── e2e-simple/               # 8 E2E tests (single partition + unions)
-├── e2e-multi/                # 8 E2E tests (multi-partition)
-└── e2e-zlib/                 # 12 E2E tests (system header, real libz.so)
+├── e2e-simple/               # E2E tests (single partition + unions)
+├── e2e-multi/                # E2E tests (multi-partition)
+└── e2e-zlib/                 # E2E tests (system header, real libz.so)
 
 bns-posix/
 ├── Cargo.toml                # Feature-gated sub-modules
@@ -131,8 +130,10 @@ bns-posix/
 │       ├── inet/mod.rs
 │       ├── mmap/mod.rs
 │       ├── netdb/mod.rs
+│       ├── signal/mod.rs
 │       ├── socket/mod.rs
 │       ├── stat/mod.rs
+│       ├── types/mod.rs
 │       └── unistd/mod.rs
 └── tests/
     ├── posixfile_e2e.rs      # 11 Fcntl/Unistd E2E tests
@@ -141,10 +142,11 @@ bns-posix/
     ├── dirent_e2e.rs         # 5 Dirent E2E tests
     ├── socket_e2e.rs         # 16 Socket E2E tests
     ├── inet_e2e.rs           # 11 Inet E2E tests
-    └── netdb_e2e.rs          # 10 Netdb E2E tests
+    ├── netdb_e2e.rs          # 10 Netdb E2E tests
+    └── signal_e2e.rs         # 14 Signal E2E tests
 ```
 
-**Total**: ~1,709 LOC (library) + ~883 LOC (roundtrip tests) + ~834 LOC (E2E crates) + 440 LOC (bns-posix E2E)
+**Total**: ~1,709 LOC (library) + ~883 LOC (roundtrip tests) + ~834 LOC (E2E crates) + 717 LOC (bns-posix E2E)
 
 ---
 
@@ -213,37 +215,37 @@ serde = { version = "1", features = ["derive"] }
 
 ## Test Coverage
 
-**124 total tests** (all passing, clippy clean):
+**138 total tests** (all passing, clippy clean):
 
-### Roundtrip Tests (30)
+### Roundtrip Tests
 
 Parse headers → emit winmd → read back → assert.
 
-**roundtrip_simple.rs** (10 tests, `simple.h`): typedefs present, enum variants,
+**roundtrip_simple.rs** (`simple.h`): typedefs present, enum variants,
 struct fields, union fields, anonymous nested types, functions, function params,
 constants, delegate, pinvoke.
 
-**roundtrip_multi.rs** (5 tests, multi-partition): namespace placement,
+**roundtrip_multi.rs** (multi-partition): namespace placement,
 functions, cross-partition typeref, constants, enums.
 
-**roundtrip_posixfile.rs** (9 tests, bns-posix): fcntl/stat/unistd functions,
+**roundtrip_posixfile.rs** (bns-posix): fcntl/stat/unistd functions,
 struct fields, struct sizes, constants, pinvoke.
 
-**roundtrip_zlib.rs** (6 tests, system headers): zlib structs, delegates,
+**roundtrip_zlib.rs** (system headers): zlib structs, delegates,
 functions, constants, z_stream fields, pinvoke.
 
-### E2E Tests (90)
+### E2E Tests
 
 Generated FFI bindings linked against real native libraries.
 
-| Crate | Tests | What it exercises |
-|---|---|---|
-| `e2e-simple` | 8 | Single partition, simple.h, widgets + unions + anonymous nested types |
-| `e2e-multi` | 8 | Multi-partition, cross-namespace type references |
-| `e2e-zlib` | 12 | System header, real libz.so, compress/uncompress roundtrip |
-| `bns-posix` | 62 | Real libc: file I/O, mmap, dirent, stat, sockets, inet, netdb (7 test files) |
+| Crate | What it exercises |
+|---|---|
+| `e2e-simple` | Single partition, simple.h, widgets + unions + anonymous nested types |
+| `e2e-multi` | Multi-partition, cross-namespace type references |
+| `e2e-zlib` | System header, real libz.so, compress/uncompress roundtrip |
+| `bns-posix` | Real libc: file I/O, mmap, dirent, stat, sockets, inet, netdb, signal |
 
-### Doc Tests (3) + Freshness Test (1)
+### Doc Tests + Freshness Test
 
 ---
 
@@ -304,7 +306,7 @@ must hold:
 - Functions — `ImplMap` entries pointing to `ModuleRef` (DLL/so name)
 - Custom attributes — `NativeTypedefAttribute`, `NativeBitfieldAttribute`, etc.
 
-All of the above are implemented and verified by the 47 tests.
+All of the above are implemented and verified by tests.
 
 ---
 

@@ -111,6 +111,20 @@ pub fn generate_from_config(cfg: &config::Config, base_dir: &Path) -> Result<Vec
     // Build global type registry
     let registry = extract::build_type_registry(&partitions, &cfg.namespace_overrides);
 
+    // Deduplicate typedefs: when the same typedef appears in multiple
+    // partitions (e.g. `uid_t` in signal, stat, unistd, AND a shared types
+    // partition), keep it only in the partition the registry maps it to.
+    // The registry uses first-writer-wins for typedefs, so the types
+    // partition should come first in the TOML to claim shared names.
+    // Other partitions drop their local copy; any function/struct that
+    // references the type will use a cross-partition TypeRef instead.
+    for partition in &mut partitions {
+        partition.typedefs.retain(|td| {
+            let canonical_ns = registry.namespace_for(&td.name, &partition.namespace);
+            canonical_ns == partition.namespace
+        });
+    }
+
     // Emit winmd
     let winmd_bytes = emit::emit_winmd(&cfg.output.name, &partitions, &registry)?;
 

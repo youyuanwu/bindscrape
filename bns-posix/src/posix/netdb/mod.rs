@@ -14,21 +14,23 @@ windows_link::link!("c" "C" fn endnetent());
 windows_link::link!("c" "C" fn endnetgrent());
 windows_link::link!("c" "C" fn endprotoent());
 windows_link::link!("c" "C" fn endservent());
-#[cfg(feature = "socket")]
+#[cfg(all(feature = "socket", feature = "types", feature = "unistd"))]
 windows_link::link!("c" "C" fn freeaddrinfo(__ai : *const addrinfo));
 windows_link::link!("c" "C" fn gai_strerror(__ecode : i32) -> *mut i8);
-#[cfg(feature = "socket")]
+#[cfg(all(feature = "socket", feature = "types", feature = "unistd"))]
 windows_link::link!("c" "C" fn getaddrinfo(__name : *const i8, __service : *const i8, __req : *const addrinfo, __pai : *const *const addrinfo) -> i32);
-windows_link::link!("c" "C" fn gethostbyaddr(__addr : *const core::ffi::c_void, __len : u32, __type : i32) -> *mut hostent);
-windows_link::link!("c" "C" fn gethostbyaddr_r(__addr : *const core::ffi::c_void, __len : u32, __type : i32, __result_buf : *const hostent, __buf : *const i8, __buflen : u64, __result : *const *const hostent, __h_errnop : *const i32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn gethostbyaddr(__addr : *const core::ffi::c_void, __len : super::types:: __socklen_t, __type : i32) -> *mut hostent);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn gethostbyaddr_r(__addr : *const core::ffi::c_void, __len : super::types:: __socklen_t, __type : i32, __result_buf : *const hostent, __buf : *const i8, __buflen : u64, __result : *const *const hostent, __h_errnop : *const i32) -> i32);
 windows_link::link!("c" "C" fn gethostbyname(__name : *const i8) -> *mut hostent);
 windows_link::link!("c" "C" fn gethostbyname2(__name : *const i8, __af : i32) -> *mut hostent);
 windows_link::link!("c" "C" fn gethostbyname2_r(__name : *const i8, __af : i32, __result_buf : *const hostent, __buf : *const i8, __buflen : u64, __result : *const *const hostent, __h_errnop : *const i32) -> i32);
 windows_link::link!("c" "C" fn gethostbyname_r(__name : *const i8, __result_buf : *const hostent, __buf : *const i8, __buflen : u64, __result : *const *const hostent, __h_errnop : *const i32) -> i32);
 windows_link::link!("c" "C" fn gethostent() -> *mut hostent);
 windows_link::link!("c" "C" fn gethostent_r(__result_buf : *const hostent, __buf : *const i8, __buflen : u64, __result : *const *const hostent, __h_errnop : *const i32) -> i32);
-#[cfg(feature = "socket")]
-windows_link::link!("c" "C" fn getnameinfo(__sa : *const super::socket:: sockaddr, __salen : super::socket:: socklen_t, __host : *const i8, __hostlen : super::socket:: socklen_t, __serv : *const i8, __servlen : super::socket:: socklen_t, __flags : i32) -> i32);
+#[cfg(all(feature = "socket", feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn getnameinfo(__sa : *const super::socket:: sockaddr, __salen : super::unistd:: socklen_t, __host : *const i8, __hostlen : super::unistd:: socklen_t, __serv : *const i8, __servlen : super::unistd:: socklen_t, __flags : i32) -> i32);
 windows_link::link!("c" "C" fn getnetbyaddr(__net : u32, __type : i32) -> *mut netent);
 windows_link::link!("c" "C" fn getnetbyaddr_r(__net : u32, __type : i32, __result_buf : *const netent, __buf : *const i8, __buflen : u64, __result : *const *const netent, __h_errnop : *const i32) -> i32);
 windows_link::link!("c" "C" fn getnetbyname(__name : *const i8) -> *mut netent);
@@ -100,19 +102,19 @@ pub const NO_RECOVERY: i32 = 3i32;
 pub const TRY_AGAIN: i32 = 2i32;
 pub const _NETDB_H: i32 = 1i32;
 #[repr(C, packed(8))]
-#[cfg(feature = "socket")]
+#[cfg(all(feature = "socket", feature = "types", feature = "unistd"))]
 #[derive(Clone, Copy)]
 pub struct addrinfo {
     pub ai_flags: i32,
     pub ai_family: i32,
     pub ai_socktype: i32,
     pub ai_protocol: i32,
-    pub ai_addrlen: super::socket::socklen_t,
+    pub ai_addrlen: super::unistd::socklen_t,
     pub ai_addr: *mut super::socket::sockaddr,
     pub ai_canonname: *mut i8,
     pub ai_next: *mut addrinfo,
 }
-#[cfg(feature = "socket")]
+#[cfg(all(feature = "socket", feature = "types", feature = "unistd"))]
 impl Default for addrinfo {
     fn default() -> Self {
         unsafe { core::mem::zeroed() }

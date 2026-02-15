@@ -13,8 +13,10 @@
 //! - [`posix::inet`] — Internet addresses (`inet_pton`, `htons`, `sockaddr_in`, `IPPROTO_*`)
 //! - [`posix::mmap`] — Memory mapping (`mmap`, `munmap`, `mprotect`, `MAP_*`/`PROT_*` constants)
 //! - [`posix::netdb`] — Network database (`getaddrinfo`, `gethostbyname`, `addrinfo`, `AI_*`)
+//! - [`posix::signal`] — Signal handling (`signal`, `sigaction`, `kill`, `raise`, `SIG*`/`SA_*`)
 //! - [`posix::socket`] — Sockets (`socket`, `bind`, `listen`, `accept`, `sockaddr`, `AF_*`/`SOCK_*`)
 //! - [`posix::stat`] — File status (`stat`, `chmod`, `mkdir`, `struct stat`)
+//! - [`posix::types`] — Shared POSIX types (`uid_t`, `pid_t`, `mode_t`, `off_t`, `gid_t`, …)
 //! - [`posix::unistd`] — POSIX standard (`read`, `write`, `close`, `fork`, …)
 //!
 //! # Safety

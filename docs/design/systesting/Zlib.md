@@ -258,7 +258,7 @@ would need to become platform-conditional (Windows LLP64: `long` = 32-bit).
 
 ## Test Results
 
-### Roundtrip Tests — `bindscrape/tests/roundtrip_zlib.rs` (6 tests) ✅
+### Roundtrip Tests — `bindscrape/tests/roundtrip_zlib.rs` ✅
 
 Own `LazyLock<Vec<u8>>` — separate binary, no Clang singleton race.
 
@@ -271,7 +271,7 @@ Own `LazyLock<Vec<u8>>` — separate binary, no Clang singleton race.
 | `zlib_z_stream_fields` | `z_stream_s` has 14 fields: `next_in`, `avail_in`, ..., `reserved` | ✅ |
 | `zlib_pinvoke` | `compress` method has ImplMap with `import_scope.name() == "z"` | ✅ |
 
-### E2E Tests — `tests/e2e-zlib/tests/zlib_e2e.rs` (12 tests) ✅
+### E2E Tests — `tests/e2e-zlib/tests/zlib_e2e.rs` ✅
 
 These exercise the generated Rust FFI bindings against the real `libz.so`.
 
@@ -339,7 +339,7 @@ macro-based FFI.
 ## Implementation Steps
 
 1. ✅ Create `tests/fixtures/zlib/zlib.toml` (two partitions)
-2. ✅ Add zlib roundtrip tests in `roundtrip_zlib.rs` (6 tests)
+2. ✅ Add zlib roundtrip tests in `roundtrip_zlib.rs`
 3. ✅ Create `tests/e2e-zlib/` crate (Cargo.toml, build.rs, src/, tests/)
 4. ✅ Fix `sonar::find_typedefs` — custom typedef discovery for typedef-to-typedef aliases
 5. ✅ Fix supplemental struct discovery — catch `gzFile_s` missed by sonar

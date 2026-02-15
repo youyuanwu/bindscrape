@@ -18,9 +18,13 @@ pub mod inet;
 pub mod mmap;
 #[cfg(feature = "netdb")]
 pub mod netdb;
+#[cfg(feature = "signal")]
+pub mod signal;
 #[cfg(feature = "socket")]
 pub mod socket;
 #[cfg(feature = "stat")]
 pub mod stat;
+#[cfg(feature = "types")]
+pub mod types;
 #[cfg(feature = "unistd")]
 pub mod unistd;

@@ -8,14 +8,16 @@
     clippy::all
 )]
 
-windows_link::link!("c" "C" fn __getpgid(__pid : i32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn __getpgid(__pid : super::types:: __pid_t) -> super::types:: __pid_t);
 windows_link::link!("c" "C" fn _exit(__status : i32));
 windows_link::link!("c" "C" fn access(__name : *const i8, __type : i32) -> i32);
 windows_link::link!("c" "C" fn acct(__name : *const i8) -> i32);
 windows_link::link!("c" "C" fn alarm(__seconds : u32) -> u32);
 windows_link::link!("c" "C" fn brk(__addr : *const core::ffi::c_void) -> i32);
 windows_link::link!("c" "C" fn chdir(__path : *const i8) -> i32);
-windows_link::link!("c" "C" fn chown(__file : *const i8, __owner : u32, __group : u32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn chown(__file : *const i8, __owner : super::types:: __uid_t, __group : super::types:: __gid_t) -> i32);
 windows_link::link!("c" "C" fn chroot(__path : *const i8) -> i32);
 windows_link::link!("c" "C" fn close(__fd : i32) -> i32);
 windows_link::link!("c" "C" fn closefrom(__lowfd : i32));
@@ -30,87 +32,124 @@ windows_link::link!("c" "C" fn execve(__path : *const i8, __argv : *const *const
 windows_link::link!("c" "C" fn execvp(__file : *const i8, __argv : *const *const i8) -> i32);
 windows_link::link!("c" "C" fn faccessat(__fd : i32, __file : *const i8, __type : i32, __flag : i32) -> i32);
 windows_link::link!("c" "C" fn fchdir(__fd : i32) -> i32);
-windows_link::link!("c" "C" fn fchown(__fd : i32, __owner : u32, __group : u32) -> i32);
-windows_link::link!("c" "C" fn fchownat(__fd : i32, __file : *const i8, __owner : u32, __group : u32, __flag : i32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn fchown(__fd : i32, __owner : super::types:: __uid_t, __group : super::types:: __gid_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn fchownat(__fd : i32, __file : *const i8, __owner : super::types:: __uid_t, __group : super::types:: __gid_t, __flag : i32) -> i32);
 windows_link::link!("c" "C" fn fdatasync(__fildes : i32) -> i32);
 windows_link::link!("c" "C" fn fexecve(__fd : i32, __argv : *const *const i8, __envp : *const *const i8) -> i32);
-windows_link::link!("c" "C" fn fork() -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn fork() -> super::types:: __pid_t);
 windows_link::link!("c" "C" fn fpathconf(__fd : i32, __name : i32) -> i64);
 windows_link::link!("c" "C" fn fsync(__fd : i32) -> i32);
-windows_link::link!("c" "C" fn ftruncate(__fd : i32, __length : i64) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn ftruncate(__fd : i32, __length : super::types:: __off_t) -> i32);
 windows_link::link!("c" "C" fn getcwd(__buf : *const i8, __size : u64) -> *mut i8);
 windows_link::link!("c" "C" fn getdomainname(__name : *const i8, __len : u64) -> i32);
 windows_link::link!("c" "C" fn getdtablesize() -> i32);
-windows_link::link!("c" "C" fn getegid() -> u32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn getegid() -> super::types:: __gid_t);
 windows_link::link!("c" "C" fn getentropy(__buffer : *const core::ffi::c_void, __length : u64) -> i32);
-windows_link::link!("c" "C" fn geteuid() -> u32);
-windows_link::link!("c" "C" fn getgid() -> u32);
-windows_link::link!("c" "C" fn getgroups(__size : i32, __list : *const u32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn geteuid() -> super::types:: __uid_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn getgid() -> super::types:: __gid_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn getgroups(__size : i32, __list : *const super::types:: __gid_t) -> i32);
 windows_link::link!("c" "C" fn gethostid() -> i64);
 windows_link::link!("c" "C" fn gethostname(__name : *const i8, __len : u64) -> i32);
 windows_link::link!("c" "C" fn getlogin() -> *mut i8);
 windows_link::link!("c" "C" fn getlogin_r(__name : *const i8, __name_len : u64) -> i32);
 windows_link::link!("c" "C" fn getpagesize() -> i32);
 windows_link::link!("c" "C" fn getpass(__prompt : *const i8) -> *mut i8);
-windows_link::link!("c" "C" fn getpgid(__pid : i32) -> i32);
-windows_link::link!("c" "C" fn getpgrp() -> i32);
-windows_link::link!("c" "C" fn getpid() -> i32);
-windows_link::link!("c" "C" fn getppid() -> i32);
-windows_link::link!("c" "C" fn getsid(__pid : i32) -> i32);
-windows_link::link!("c" "C" fn getuid() -> u32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn getpgid(__pid : super::types:: __pid_t) -> super::types:: __pid_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn getpgrp() -> super::types:: __pid_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn getpid() -> super::types:: __pid_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn getppid() -> super::types:: __pid_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn getsid(__pid : super::types:: __pid_t) -> super::types:: __pid_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn getuid() -> super::types:: __uid_t);
 windows_link::link!("c" "C" fn getusershell() -> *mut i8);
 windows_link::link!("c" "C" fn getwd(__buf : *const i8) -> *mut i8);
 windows_link::link!("c" "C" fn isatty(__fd : i32) -> i32);
-windows_link::link!("c" "C" fn lchown(__file : *const i8, __owner : u32, __group : u32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn lchown(__file : *const i8, __owner : super::types:: __uid_t, __group : super::types:: __gid_t) -> i32);
 windows_link::link!("c" "C" fn link(__from : *const i8, __to : *const i8) -> i32);
 windows_link::link!("c" "C" fn linkat(__fromfd : i32, __from : *const i8, __tofd : i32, __to : *const i8, __flags : i32) -> i32);
-windows_link::link!("c" "C" fn lockf(__fd : i32, __cmd : i32, __len : i64) -> i32);
-windows_link::link!("c" "C" fn lseek(__fd : i32, __offset : i64, __whence : i32) -> i64);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn lockf(__fd : i32, __cmd : i32, __len : super::types:: __off_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn lseek(__fd : i32, __offset : super::types:: __off_t, __whence : i32) -> super::types:: __off_t);
 windows_link::link!("c" "C" fn nice(__inc : i32) -> i32);
 windows_link::link!("c" "C" fn pathconf(__path : *const i8, __name : i32) -> i64);
 windows_link::link!("c" "C" fn pause() -> i32);
 windows_link::link!("c" "C" fn pipe(__pipedes : *const i32) -> i32);
-windows_link::link!("c" "C" fn pread(__fd : i32, __buf : *const core::ffi::c_void, __nbytes : u64, __offset : i64) -> ssize_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn pread(__fd : i32, __buf : *const core::ffi::c_void, __nbytes : u64, __offset : super::types:: __off_t) -> super::types:: ssize_t);
 windows_link::link!("c" "C" fn profil(__sample_buffer : *const u16, __size : u64, __offset : u64, __scale : u32) -> i32);
-windows_link::link!("c" "C" fn pwrite(__fd : i32, __buf : *const core::ffi::c_void, __n : u64, __offset : i64) -> ssize_t);
-windows_link::link!("c" "C" fn read(__fd : i32, __buf : *const core::ffi::c_void, __nbytes : u64) -> ssize_t);
-windows_link::link!("c" "C" fn readlink(__path : *const i8, __buf : *const i8, __len : u64) -> ssize_t);
-windows_link::link!("c" "C" fn readlinkat(__fd : i32, __path : *const i8, __buf : *const i8, __len : u64) -> ssize_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn pwrite(__fd : i32, __buf : *const core::ffi::c_void, __n : u64, __offset : super::types:: __off_t) -> super::types:: ssize_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn read(__fd : i32, __buf : *const core::ffi::c_void, __nbytes : u64) -> super::types:: ssize_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn readlink(__path : *const i8, __buf : *const i8, __len : u64) -> super::types:: ssize_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn readlinkat(__fd : i32, __path : *const i8, __buf : *const i8, __len : u64) -> super::types:: ssize_t);
 windows_link::link!("c" "C" fn revoke(__file : *const i8) -> i32);
 windows_link::link!("c" "C" fn rmdir(__path : *const i8) -> i32);
+#[cfg(feature = "types")]
 windows_link::link!("c" "C" fn sbrk(__delta : intptr_t) -> *mut core::ffi::c_void);
 windows_link::link!("c" "C" fn setdomainname(__name : *const i8, __len : u64) -> i32);
-windows_link::link!("c" "C" fn setegid(__gid : u32) -> i32);
-windows_link::link!("c" "C" fn seteuid(__uid : u32) -> i32);
-windows_link::link!("c" "C" fn setgid(__gid : u32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn setegid(__gid : super::types:: __gid_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn seteuid(__uid : super::types:: __uid_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn setgid(__gid : super::types:: __gid_t) -> i32);
 windows_link::link!("c" "C" fn sethostid(__id : i64) -> i32);
 windows_link::link!("c" "C" fn sethostname(__name : *const i8, __len : u64) -> i32);
 windows_link::link!("c" "C" fn setlogin(__name : *const i8) -> i32);
-windows_link::link!("c" "C" fn setpgid(__pid : i32, __pgid : i32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn setpgid(__pid : super::types:: __pid_t, __pgid : super::types:: __pid_t) -> i32);
 windows_link::link!("c" "C" fn setpgrp() -> i32);
-windows_link::link!("c" "C" fn setregid(__rgid : u32, __egid : u32) -> i32);
-windows_link::link!("c" "C" fn setreuid(__ruid : u32, __euid : u32) -> i32);
-windows_link::link!("c" "C" fn setsid() -> i32);
-windows_link::link!("c" "C" fn setuid(__uid : u32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn setregid(__rgid : super::types:: __gid_t, __egid : super::types:: __gid_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn setreuid(__ruid : super::types:: __uid_t, __euid : super::types:: __uid_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn setsid() -> super::types:: __pid_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn setuid(__uid : super::types:: __uid_t) -> i32);
 windows_link::link!("c" "C" fn setusershell());
 windows_link::link!("c" "C" fn sleep(__seconds : u32) -> u32);
 windows_link::link!("c" "C" fn symlink(__from : *const i8, __to : *const i8) -> i32);
 windows_link::link!("c" "C" fn symlinkat(__from : *const i8, __tofd : i32, __to : *const i8) -> i32);
 windows_link::link!("c" "C" fn sync());
 windows_link::link!("c" "C" fn sysconf(__name : i32) -> i64);
-windows_link::link!("c" "C" fn tcgetpgrp(__fd : i32) -> i32);
-windows_link::link!("c" "C" fn tcsetpgrp(__fd : i32, __pgrp_id : i32) -> i32);
-windows_link::link!("c" "C" fn truncate(__file : *const i8, __length : i64) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn tcgetpgrp(__fd : i32) -> super::types:: __pid_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn tcsetpgrp(__fd : i32, __pgrp_id : super::types:: __pid_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn truncate(__file : *const i8, __length : super::types:: __off_t) -> i32);
 windows_link::link!("c" "C" fn ttyname(__fd : i32) -> *mut i8);
 windows_link::link!("c" "C" fn ttyname_r(__fd : i32, __buf : *const i8, __buflen : u64) -> i32);
 windows_link::link!("c" "C" fn ttyslot() -> i32);
-windows_link::link!("c" "C" fn ualarm(__value : u32, __interval : u32) -> u32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn ualarm(__value : super::types:: __useconds_t, __interval : super::types:: __useconds_t) -> super::types:: __useconds_t);
 windows_link::link!("c" "C" fn unlink(__name : *const i8) -> i32);
 windows_link::link!("c" "C" fn unlinkat(__fd : i32, __name : *const i8, __flag : i32) -> i32);
-windows_link::link!("c" "C" fn usleep(__useconds : u32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn usleep(__useconds : super::types:: __useconds_t) -> i32);
 windows_link::link!("c" "C" fn vfork() -> i32);
 windows_link::link!("c" "C" fn vhangup() -> i32);
-windows_link::link!("c" "C" fn write(__fd : i32, __buf : *const core::ffi::c_void, __n : u64) -> ssize_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn write(__fd : i32, __buf : *const core::ffi::c_void, __n : u64) -> super::types:: ssize_t);
 pub const F_LOCK: i32 = 1i32;
 pub const F_OK: i32 = 0i32;
 pub const F_TEST: i32 = 3i32;
@@ -136,11 +175,6 @@ pub const _XOPEN_XPG2: i32 = 1i32;
 pub const _XOPEN_XPG3: i32 = 1i32;
 pub const _XOPEN_XPG4: i32 = 1i32;
 pub const __POSIX2_THIS_VERSION: i32 = 200809i32;
-pub type gid_t = u32;
-pub type intptr_t = i64;
-pub type off_t = i64;
-pub type pid_t = i32;
-pub type socklen_t = u32;
-pub type ssize_t = i64;
-pub type uid_t = u32;
-pub type useconds_t = u32;
+pub type intptr_t = super::types::__intptr_t;
+pub type socklen_t = super::types::__socklen_t;
+pub type useconds_t = super::types::__useconds_t;

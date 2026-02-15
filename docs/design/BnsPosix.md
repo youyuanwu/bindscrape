@@ -16,8 +16,10 @@ C-header-to-WinMD approach scales beyond test fixtures to real system APIs.
 | `posix::inet`   | `netinet/in.h`, `arpa/inet.h` | 20 | ~75 | `sockaddr_in`, `sockaddr_in6`, `in_addr`, `in6_addr` (+unions) |
 | `posix::mmap`   | `sys/mman.h`, `bits/mman-linux.h`, `bits/mman-map-flags-generic.h` | 13 | ~62 | — |
 | `posix::netdb`  | `netdb.h`, `bits/netdb.h` | 56 | ~32 | `addrinfo`, `hostent`, `servent`, `protoent`, `netent` |
+| `posix::signal` | `signal.h`, `bits/sigaction.h`, `bits/signum-*.h`, `bits/sigcontext.h`, `bits/types/*` | 30 | ~50 | `sigaction` (union), `siginfo_t` (nested unions), `__sigset_t`, `sigcontext`, `stack_t` |
 | `posix::socket` | `sys/socket.h`, `bits/socket.h`, `bits/socket_type.h`, `bits/socket-constants.h` | 20 | ~102 | `sockaddr`, `sockaddr_storage`, `msghdr`, `iovec`, `cmsghdr`, `linger` |
 | `posix::stat`   | `sys/stat.h`, `bits/struct_stat.h`, `bits/types/struct_timespec.h` | 17 | 4 | `stat`, `timespec` |
+| `posix::types`  | `sys/types.h`, `bits/types.h` | — | — | `__fsid_t` + 94 shared typedefs (`uid_t`, `pid_t`, `mode_t`, …) |
 | `posix::unistd` | `unistd.h` | 103 | ~23 | — |
 
 ### Usage
@@ -84,23 +86,27 @@ cargo run -p bns-posix-gen
 
 ### Why namespace modules?
 
-Multiple partitions extract overlapping system types (`off_t`, `mode_t`,
-`SEEK_SET`, etc.). Without `--flat`, windows-bindgen generates nested
-`pub mod` modules per namespace, so each partition's types live in their
-own module. Cross-partition references use `super::stat::mode_t` etc.
+Multiple partitions reference overlapping system types (`off_t`, `mode_t`,
+`uid_t`, etc.). A dedicated **types** partition (`posix.types`) owns these
+shared typedefs. During generation, bindscrape deduplicates: the types
+partition is processed first (first-writer-wins for typedefs), and later
+partitions' duplicate copies are removed. Function signatures in other
+partitions use cross-partition TypeRefs (e.g. `super::types::__uid_t`).
 
 ## Partition Config
 
 The TOML config lives at `tests/fixtures/bns-posix/bns-posix.toml`
-and defines eight partitions:
+and defines ten partitions:
 
 | Partition | Namespace | Headers traversed |
 |---|---|---|
+| Types | `posix.types` | `sys/types.h`, `bits/types.h` |
 | Dirent | `posix.dirent` | `dirent.h`, `bits/dirent.h` |
 | Fcntl | `posix.fcntl` | `fcntl.h` |
 | Inet | `posix.inet` | `netinet/in.h`, `arpa/inet.h` |
 | Mmap | `posix.mmap` | `sys/mman.h`, `bits/mman-linux.h`, `bits/mman-map-flags-generic.h` |
 | Netdb | `posix.netdb` | `netdb.h`, `bits/netdb.h` |
+| Signal | `posix.signal` | `signal.h`, `bits/sigaction.h`, `bits/signum-generic.h`, `bits/signum-arch.h`, `bits/sigcontext.h`, `bits/types/__sigset_t.h`, `bits/types/siginfo_t.h`, `bits/types/__sigval_t.h`, `bits/types/stack_t.h`, `bits/types/struct_sigstack.h` |
 | Socket | `posix.socket` | `sys/socket.h`, `bits/socket.h`, `bits/socket_type.h`, `bits/socket-constants.h`, `bits/types/struct_iovec.h` |
 | Stat | `posix.stat` | `sys/stat.h`, `bits/struct_stat.h`, `bits/types/struct_timespec.h` |
 | Unistd | `posix.unistd` | `unistd.h` |
@@ -144,6 +150,20 @@ in bindscrape core (see [bns-posix.md](systesting/bns-posix.md) for details):
     windows-bindgen gates these with `#[cfg(feature = "X")]` automatically.
 13. **`htons`/`htonl` as real symbols** — on glibc x86-64, `htons`/`htonl`
     have real symbols in `libc.so` (weak symbols), so P/Invoke works.
+14. **Function-pointer typedefs** — `__sighandler_t` is
+    `void (*)(int)`, emitted as a WinMD delegate and generated as
+    `Option<unsafe extern "system" fn(i32)>`. First use of delegate
+    types in bns-posix.
+15. **Function/struct name collision** — `sigstack` is both a function
+    and a struct. Adding `bits/types/struct_sigstack.h` to the traverse
+    list emits both; same pattern as `stat`.
+16. **Deep include graph** — `signal.h` pulls 10 sub-headers across
+    `bits/` and `bits/types/`; each missing traverse path causes
+    windows-bindgen to panic with "type not found".
+17. **Typedef deduplication** — shared POSIX types (`uid_t`, `pid_t`,
+    `mode_t`, etc.) appear in multiple headers. A dedicated `posix.types`
+    partition owns them; the type registry uses first-writer-wins for
+    typedefs, and the dedup pass removes duplicates from later partitions.
 
 ## Extending
 
@@ -159,15 +179,16 @@ To add more POSIX APIs (e.g., `sys/socket.h`, `pthread.h`):
 
 ## Tests
 
-The crate includes 62 integration tests across 7 test files in `tests/`
+The crate includes integration tests across multiple test files in `tests/`
 that call real libc functions through the generated bindings:
 
-| File | Tests | Partition |
-|---|---|---|
-| `posixfile_e2e.rs` | 11 | Fcntl + Unistd (file I/O, constants, syscalls) |
-| `stat_e2e.rs` | 4 | Stat (file size, mode, struct layout) |
-| `mmap_e2e.rs` | 5 | Mmap (PROT_*/MAP_*/MS_* constants, mmap roundtrip, mprotect) |
-| `dirent_e2e.rs` | 5 | Dirent (DT_* constants, opendir/readdir/closedir, dirfd) |
-| `socket_e2e.rs` | 16 | Socket (SOCK_*/PF_*/MSG_* constants, struct layout, socket/bind/listen/send/recv) |
-| `inet_e2e.rs` | 11 | Inet (IPPROTO_* constants, struct layout, htons/htonl, inet_pton/ntop) |
-| `netdb_e2e.rs` | 10 | Netdb (AI_*/EAI_* constants, struct layout, getprotobyname, getaddrinfo) |
+| File | Partition |
+|---|---|
+| `posixfile_e2e.rs` | Fcntl + Unistd (file I/O, constants, syscalls) |
+| `stat_e2e.rs` | Stat (file size, mode, struct layout) |
+| `mmap_e2e.rs` | Mmap (PROT_*/MAP_*/MS_* constants, mmap roundtrip, mprotect) |
+| `dirent_e2e.rs` | Dirent (DT_* constants, opendir/readdir/closedir, dirfd) |
+| `socket_e2e.rs` | Socket (SOCK_*/PF_*/MSG_* constants, struct layout, socket/bind/listen/send/recv) |
+| `inet_e2e.rs` | Inet (IPPROTO_* constants, struct layout, htons/htonl, inet_pton/ntop) |
+| `netdb_e2e.rs` | Netdb (AI_*/EAI_* constants, struct layout, getprotobyname, getaddrinfo) |
+| `signal_e2e.rs` | Signal (SIG_*/SA_* constants, struct layout, sigset ops, sigaction, raise, sigprocmask, kill) |

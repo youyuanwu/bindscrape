@@ -8,15 +8,20 @@
     clippy::all
 )]
 
+#[cfg(feature = "types")]
 windows_link::link!("c" "C" fn alphasort(__e1 : *const *const dirent, __e2 : *const *const dirent) -> i32);
 windows_link::link!("c" "C" fn closedir(__dirp : *const DIR) -> i32);
 windows_link::link!("c" "C" fn dirfd(__dirp : *const DIR) -> i32);
 windows_link::link!("c" "C" fn fdopendir(__fd : i32) -> *mut DIR);
-windows_link::link!("c" "C" fn getdirentries(__fd : i32, __buf : *const i8, __nbytes : u64, __basep : *const i64) -> i64);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn getdirentries(__fd : i32, __buf : *const i8, __nbytes : u64, __basep : *const super::types:: __off_t) -> super::types:: __ssize_t);
 windows_link::link!("c" "C" fn opendir(__name : *const i8) -> *mut DIR);
+#[cfg(feature = "types")]
 windows_link::link!("c" "C" fn readdir(__dirp : *const DIR) -> *mut dirent);
+#[cfg(feature = "types")]
 windows_link::link!("c" "C" fn readdir_r(__dirp : *const DIR, __entry : *const dirent, __result : *const *const dirent) -> i32);
 windows_link::link!("c" "C" fn rewinddir(__dirp : *const DIR));
+#[cfg(feature = "types")]
 windows_link::link!("c" "C" fn scandir(__dir : *const i8, __namelist : *const *const *const dirent, __selector : *const isize, __cmp : *const isize) -> i32);
 windows_link::link!("c" "C" fn seekdir(__dirp : *const DIR, __pos : i64));
 windows_link::link!("c" "C" fn telldir(__dirp : *const DIR) -> i64);
@@ -33,14 +38,16 @@ pub const DT_WHT: u32 = 14u32;
 pub const _DIRENT_H: i32 = 1i32;
 pub const _DIRENT_MATCHES_DIRENT64: i32 = 1i32;
 #[repr(C, packed(8))]
+#[cfg(feature = "types")]
 #[derive(Clone, Copy)]
 pub struct dirent {
-    pub d_ino: u64,
-    pub d_off: i64,
+    pub d_ino: super::types::__ino_t,
+    pub d_off: super::types::__off_t,
     pub d_reclen: u16,
     pub d_type: u8,
     pub d_name: [i8; 256],
 }
+#[cfg(feature = "types")]
 impl Default for dirent {
     fn default() -> Self {
         unsafe { core::mem::zeroed() }

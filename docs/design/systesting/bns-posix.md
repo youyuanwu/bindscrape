@@ -10,6 +10,8 @@ and E2E test plans for one header group.
 | [Mmap](#mmap) | ✅ Implemented | Hex constant extraction, `void *` return |
 | [Dirent](#dirent) | ✅ Implemented | Anonymous enums, opaque typedefs, PtrConst fix |
 | [Sockets](#sockets) | ✅ Implemented | 3 partitions under posix (socket, inet, netdb) |
+| [Signal](#signal) | ✅ Implemented | Union-in-struct, function-pointer delegate, deep include graph |
+| [Types](#types) | ✅ Implemented | Shared POSIX typedefs, first-writer-wins dedup |
 
 ---
 
@@ -361,11 +363,11 @@ Test against real filesystem operations using temp files.
 5. ✅ Function deduplication via `HashSet` in `collect_functions()`
 6. ✅ Created `tests/fixtures/bns-posix/bns-posix.toml`
    (5 partitions: Dirent, Fcntl, Mmap, Stat, Unistd)
-7. ✅ Added 9 roundtrip tests in `roundtrip_posixfile.rs`
+7. ✅ Added roundtrip tests in `roundtrip_posixfile.rs`
 8. ✅ Created `bns-posix/` crate with feature-gated namespace modules
    (package mode via `bns-posix-gen`, no `build.rs`)
 9. ✅ Added `struct_timespec.h` to Stat traverse list
-10. ✅ Created 25 E2E tests (`posixfile_e2e.rs`) — all passing
+10. ✅ Created E2E tests (`posixfile_e2e.rs`) — all passing
 11. ✅ Added `bns-posix` and `bns-posix-gen` to workspace members
 12. ✅ Separated generator into `bns-posix-gen` crate using
    `windows-bindgen --package` mode
@@ -775,3 +777,187 @@ Suggested sequence:
 9. ✅ Cross-partition refs work via `#[cfg(feature = "X")]` gating
    (e.g. `recv` → `super::unistd::ssize_t`, `addrinfo` → `super::socket::sockaddr`)
 10. ✅ 37 socket E2E tests added to `posixfile_e2e.rs`
+
+---
+
+## Signal
+
+### Why Signal
+
+- **Union-in-struct**: `struct sigaction` contains a union
+  `__sigaction_handler` with `sa_handler` (function pointer) vs
+  `sa_sigaction` (3-arg handler pointer) — first real use of unions
+  inside structs in bns-posix
+- **Function-pointer typedef**: `__sighandler_t` = `void (*)(int)` —
+  emitted as a WinMD delegate, generated as
+  `Option<unsafe extern "system" fn(i32)>`. First delegate type in bns-posix.
+- **Deeply nested anonymous types**: `siginfo_t` contains
+  `_sifields` union with 7 variants, some containing further nested
+  structs and unions (e.g. `_sigfault._bounds._addr_bnd`)
+- **Deep include graph**: `signal.h` pulls 10 sub-headers across
+  `bits/` and `bits/types/`
+- **Platform-specific register state**: `sigcontext` with x86-64
+  registers, `_fpstate`/`_fpxreg`/`_xmmreg`/`_xstate` FPU structs
+- **Function/struct name collision**: `sigstack` is both a function
+  and a struct (same pattern as `stat`)
+
+### Partition Config
+
+Single partition under `posix.signal`:
+- **Header**: `signal.h`
+- **Traverse paths**: `signal.h`, `bits/sigaction.h`,
+  `bits/signum-generic.h`, `bits/signum-arch.h`, `bits/sigcontext.h`,
+  `bits/types/__sigset_t.h`, `bits/types/siginfo_t.h`,
+  `bits/types/__sigval_t.h`, `bits/types/stack_t.h`,
+  `bits/types/struct_sigstack.h`
+
+### Challenges
+
+#### 1. Deep include graph — ✅ Resolved
+
+`signal.h` includes 10 sub-headers. Each missing path caused
+windows-bindgen to panic with "type not found". Iteratively discovered:
+`__sigset_t` → `siginfo_t`/`__sigval_t` → `stack_t` → `sigcontext` →
+`struct_sigstack.h`.
+
+#### 2. Function-pointer delegate — ✅ Resolved
+
+`__sighandler_t` is `void (*)(int)`, emitted as a WinMD delegate.
+windows-bindgen generates `Option<unsafe extern "system" fn(i32)>`.
+Works correctly for both `signal()` function parameter/return and
+`sigaction.__sigaction_handler.sa_handler` field.
+
+#### 3. Function/struct name collision — ✅ Resolved
+
+`sigstack` is both a deprecated function and a struct. Adding
+`bits/types/struct_sigstack.h` to traverse emits both alongside
+each other. Same pattern as `stat` function vs `struct stat`.
+
+#### 4. Cross-partition reference — ✅ Resolved
+
+`sigtimedwait` takes `const struct timespec *` which lives in the
+stat partition. windows-bindgen auto-gates with
+`#[cfg(feature = "stat")]`.
+
+### API Surface
+
+**30 functions**: `kill`, `raise`, `signal`, `sigaction`, `sigprocmask`,
+`sigemptyset`, `sigfillset`, `sigaddset`, `sigdelset`, `sigismember`,
+`sigpending`, `sigsuspend`, `sigaltstack`, `sigwait`, `sigwaitinfo`,
+`sigtimedwait`, `sigqueue`, `sigreturn`, `psignal`, `psiginfo`,
+`killpg`, `sigblock`, `sigsetmask`, `siggetmask`, `siginterrupt`,
+`sigstack`, `ssignal`, `gsignal`, `__sysv_signal`,
+`__libc_current_sigrtmin`, `__libc_current_sigrtmax`
+
+**~50 constants**: `SIGHUP`..`SIGUSR2` (standard signals),
+`SA_NOCLDSTOP`, `SA_NOCLDWAIT`, `SA_SIGINFO`, `SA_ONSTACK`,
+`SA_RESTART`, `SA_NODEFER`, `SA_RESETHAND`, `SIG_BLOCK`,
+`SIG_UNBLOCK`, `SIG_SETMASK`, `__SIGRTMIN`, `__SIGRTMAX`
+
+**23 structs**: `sigaction` (with union), `siginfo_t` (with 8 nested
+anonymous types), `__sigset_t`, `sigcontext`, `sigval`, `__sigval_t`,
+`stack_t`, `sigstack`, `_fpstate`, `_fpreg`, `_fpxreg`, `_xmmreg`,
+`_fpx_sw_bytes`, `_xsave_hdr`, `_ymmh_state`, `_xstate`
+
+**Types**: `__sighandler_t` = `Option<unsafe extern "system" fn(i32)>`,
+`pid_t` = `i32`, `uid_t` = `u32`, `sig_t` = `__sighandler_t`
+
+### E2E Tests (`signal_e2e.rs`)
+
+| Test | What it validates |
+|---|---|
+| `sig_constants` | SIGHUP through SIGTSTP values match POSIX |
+| `sa_flag_constants` | SA_NOCLDSTOP, SA_SIGINFO, SA_RESTART, etc. |
+| `sig_block_constants` | SIG_BLOCK=0, SIG_UNBLOCK=1, SIG_SETMASK=2 |
+| `sigaction_struct_size` | 152 bytes on x86-64 |
+| `sigset_struct_size` | 128 bytes (1024 bits) |
+| `siginfo_struct_size` | 128 bytes on x86-64 |
+| `stack_t_struct_size` | 24 bytes on x86-64 |
+| `sighandler_type_is_option_fn_pointer` | pointer-sized Option\<fn\> |
+| `sigemptyset_and_sigaddset` | sigset bit manipulation via libc |
+| `sigfillset_and_sigdelset` | sigset fill + delete via libc |
+| `raise_and_signal_handler` | Install handler, raise SIGUSR1, verify called |
+| `sigaction_install_handler` | sigaction with SA_RESTART, raise SIGUSR2 |
+| `sigprocmask_block_and_pending` | SIG_BLOCK, sigpending, SIG_SETMASK restore |
+| `kill_self_with_zero` | kill(getpid(), 0) process existence check |
+
+### Implementation Steps
+
+1. ✅ Added partition 9 to `bns-posix.toml` with `posix.signal` namespace
+2. ✅ Iteratively discovered 10 traverse paths through `bits/` and `bits/types/`
+3. ✅ Generation succeeded — 30 functions, 23 structs, ~50 constants, 4 types
+4. ✅ Compilation clean — all struct layouts match libc
+5. ✅ Added `signal` feature to `bns-posix/Cargo.toml` default list
+6. ✅ Cross-partition ref: `sigtimedwait` → `stat::timespec` (auto `#[cfg]`)
+7. ✅ E2E tests covering constants, struct layouts, sigset ops, signal
+   delivery, sigaction, sigprocmask, and kill
+
+---
+
+## Types
+
+Centralise shared POSIX typedefs (`uid_t`, `pid_t`, `mode_t`, `off_t`,
+`gid_t`, `ssize_t`, `ino_t`, `dev_t`, `nlink_t`, `blksize_t`, `blkcnt_t`, …)
+into a dedicated `posix.types` partition so other partitions reference them
+via cross-partition `TypeRef` instead of duplicating definitions.
+
+### Why a Types Partition
+
+- **Deduplication**: Without it, `uid_t`/`pid_t`/`mode_t` etc. appear in
+  every partition that includes a header transitively defining them.
+- **Single source of truth**: Matches the C model where `<sys/types.h>` is
+  the canonical home for these types.
+- **Cross-partition hygiene**: Other partitions now carry `#[cfg(feature = "types")]`
+  gates on shared-type references, making dependency direction explicit.
+
+### Header Layout
+
+| Header | Resolved path | Role |
+|---|---|---|
+| `sys/types.h` | `/usr/include/x86_64-linux-gnu/sys/types.h` | Public typedefs |
+| `bits/types.h` | `/usr/include/x86_64-linux-gnu/bits/types.h` | Internal `__` types, `__fsid_t` struct |
+
+### Generated Content
+
+- **95 typedefs**: Public (`uid_t`, `pid_t`, …) and internal (`__uid_t`,
+  `__pid_t`, …) type aliases.
+- **1 struct**: `__fsid_t` (2-element `i32` array, used by `fsid_t` typedef).
+- **0 functions**: `sys/types.h` declares no functions.
+- **3 constants**: `__S_IREAD`, `__S_IWRITE`, `__S_IEXEC` (permission masks).
+
+### Typedef Deduplication Mechanism
+
+1. **First-writer-wins registry**: `build_type_registry` iterates partitions
+   in TOML order. For typedefs, if the name is already registered, the
+   later partition is skipped. Since types is partition 1, it registers
+   `uid_t` etc. before any other partition processes them.
+2. **Dedup retain pass**: After the registry is built, each partition runs
+   `partition.typedefs.retain(|td| canonical_ns == partition.namespace)`,
+   stripping any typedef whose canonical home is another partition.
+3. **Cross-partition TypeRefs**: windows-bindgen emits `super::types::__uid_t`
+   references with `#[cfg(feature = "types")]` gates automatically.
+
+### Challenges
+
+| Problem | Root cause | Fix |
+|---|---|---|
+| `type not found: posix.types.__fsid_t` | `__fsid_t` struct lives in `bits/types.h`, not `sys/types.h` | Added `bits/types.h` to traverse list |
+| Last-writer-wins fragility | Original registry used HashMap insert (last writer wins) | Redesigned to first-writer-wins for typedefs |
+| ~60 internal `__` typedefs pulled in | `bits/types.h` defines many `__*` types | Harmless — internal types, no API pollution |
+
+### E2E Tests
+
+No E2E tests for this partition — it contains only typedefs and one struct
+with no callable functions. Correctness is verified indirectly through the
+existing E2E tests in other partitions that consume these types.
+
+### Implementation Steps
+
+1. ✅ Added partition 1 (types) to `bns-posix.toml` with `posix.types` namespace
+2. ✅ Added `sys/types.h` header and `bits/types.h` traverse path
+3. ✅ Implemented first-writer-wins typedef dedup in `build_type_registry`
+4. ✅ Added dedup retain pass in `generate_from_config`
+5. ✅ Generation succeeded — 95 typedefs, 1 struct, 0 functions, 3 constants
+6. ✅ Compilation clean — all cross-partition `#[cfg]` gates resolve
+7. ✅ Added `types` feature to `bns-posix/Cargo.toml` default list
+8. ✅ All existing tests pass (no E2E changes needed)

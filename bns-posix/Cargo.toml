@@ -11,7 +11,7 @@ license.workspace = true
 windows-link.workspace = true
 
 [features]
-default = ["dirent", "fcntl", "inet", "mmap", "netdb", "socket", "stat", "unistd"]
+default = ["dirent", "fcntl", "inet", "mmap", "netdb", "signal", "socket", "stat", "types", "unistd"]
 Foundation = []
 # generated features
 dirent = ["Foundation"]
@@ -19,6 +19,8 @@ fcntl = ["Foundation"]
 inet = ["Foundation"]
 mmap = ["Foundation"]
 netdb = ["Foundation"]
+signal = ["Foundation"]
 socket = ["Foundation"]
 stat = ["Foundation"]
+types = ["Foundation"]
 unistd = ["Foundation"]

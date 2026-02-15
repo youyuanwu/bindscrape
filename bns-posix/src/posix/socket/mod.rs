@@ -8,28 +8,36 @@
     clippy::all
 )]
 
+#[cfg(all(feature = "types", feature = "unistd"))]
 windows_link::link!("c" "C" fn __cmsg_nxthdr(__mhdr : *const msghdr, __cmsg : *const cmsghdr) -> *mut cmsghdr);
-windows_link::link!("c" "C" fn accept(__fd : i32, __addr : *const sockaddr, __addr_len : *const socklen_t) -> i32);
-windows_link::link!("c" "C" fn bind(__fd : i32, __addr : *const sockaddr, __len : socklen_t) -> i32);
-windows_link::link!("c" "C" fn connect(__fd : i32, __addr : *const sockaddr, __len : socklen_t) -> i32);
-windows_link::link!("c" "C" fn getpeername(__fd : i32, __addr : *const sockaddr, __len : *const socklen_t) -> i32);
-windows_link::link!("c" "C" fn getsockname(__fd : i32, __addr : *const sockaddr, __len : *const socklen_t) -> i32);
-windows_link::link!("c" "C" fn getsockopt(__fd : i32, __level : i32, __optname : i32, __optval : *const core::ffi::c_void, __optlen : *const socklen_t) -> i32);
+#[cfg(all(feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn accept(__fd : i32, __addr : *const sockaddr, __addr_len : *const super::unistd:: socklen_t) -> i32);
+#[cfg(all(feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn bind(__fd : i32, __addr : *const sockaddr, __len : super::unistd:: socklen_t) -> i32);
+#[cfg(all(feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn connect(__fd : i32, __addr : *const sockaddr, __len : super::unistd:: socklen_t) -> i32);
+#[cfg(all(feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn getpeername(__fd : i32, __addr : *const sockaddr, __len : *const super::unistd:: socklen_t) -> i32);
+#[cfg(all(feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn getsockname(__fd : i32, __addr : *const sockaddr, __len : *const super::unistd:: socklen_t) -> i32);
+#[cfg(all(feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn getsockopt(__fd : i32, __level : i32, __optname : i32, __optval : *const core::ffi::c_void, __optlen : *const super::unistd:: socklen_t) -> i32);
 windows_link::link!("c" "C" fn isfdtype(__fd : i32, __fdtype : i32) -> i32);
 windows_link::link!("c" "C" fn listen(__fd : i32, __n : i32) -> i32);
-#[cfg(feature = "unistd")]
-windows_link::link!("c" "C" fn recv(__fd : i32, __buf : *const core::ffi::c_void, __n : u64, __flags : i32) -> super::unistd:: ssize_t);
-#[cfg(feature = "unistd")]
-windows_link::link!("c" "C" fn recvfrom(__fd : i32, __buf : *const core::ffi::c_void, __n : u64, __flags : i32, __addr : *const sockaddr, __addr_len : *const socklen_t) -> super::unistd:: ssize_t);
-#[cfg(feature = "unistd")]
-windows_link::link!("c" "C" fn recvmsg(__fd : i32, __message : *const msghdr, __flags : i32) -> super::unistd:: ssize_t);
-#[cfg(feature = "unistd")]
-windows_link::link!("c" "C" fn send(__fd : i32, __buf : *const core::ffi::c_void, __n : u64, __flags : i32) -> super::unistd:: ssize_t);
-#[cfg(feature = "unistd")]
-windows_link::link!("c" "C" fn sendmsg(__fd : i32, __message : *const msghdr, __flags : i32) -> super::unistd:: ssize_t);
-#[cfg(feature = "unistd")]
-windows_link::link!("c" "C" fn sendto(__fd : i32, __buf : *const core::ffi::c_void, __n : u64, __flags : i32, __addr : *const sockaddr, __addr_len : socklen_t) -> super::unistd:: ssize_t);
-windows_link::link!("c" "C" fn setsockopt(__fd : i32, __level : i32, __optname : i32, __optval : *const core::ffi::c_void, __optlen : socklen_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn recv(__fd : i32, __buf : *const core::ffi::c_void, __n : u64, __flags : i32) -> super::types:: ssize_t);
+#[cfg(all(feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn recvfrom(__fd : i32, __buf : *const core::ffi::c_void, __n : u64, __flags : i32, __addr : *const sockaddr, __addr_len : *const super::unistd:: socklen_t) -> super::types:: ssize_t);
+#[cfg(all(feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn recvmsg(__fd : i32, __message : *const msghdr, __flags : i32) -> super::types:: ssize_t);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn send(__fd : i32, __buf : *const core::ffi::c_void, __n : u64, __flags : i32) -> super::types:: ssize_t);
+#[cfg(all(feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn sendmsg(__fd : i32, __message : *const msghdr, __flags : i32) -> super::types:: ssize_t);
+#[cfg(all(feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn sendto(__fd : i32, __buf : *const core::ffi::c_void, __n : u64, __flags : i32, __addr : *const sockaddr, __addr_len : super::unistd:: socklen_t) -> super::types:: ssize_t);
+#[cfg(all(feature = "types", feature = "unistd"))]
+windows_link::link!("c" "C" fn setsockopt(__fd : i32, __level : i32, __optname : i32, __optval : *const core::ffi::c_void, __optlen : super::unistd:: socklen_t) -> i32);
 windows_link::link!("c" "C" fn shutdown(__fd : i32, __how : i32) -> i32);
 windows_link::link!("c" "C" fn sockatmark(__fd : i32) -> i32);
 windows_link::link!("c" "C" fn socket(__domain : i32, __type : i32, __protocol : i32) -> i32);
@@ -177,16 +185,18 @@ pub struct linger {
     pub l_linger: i32,
 }
 #[repr(C, packed(8))]
+#[cfg(all(feature = "types", feature = "unistd"))]
 #[derive(Clone, Copy)]
 pub struct msghdr {
     pub msg_name: *mut core::ffi::c_void,
-    pub msg_namelen: socklen_t,
+    pub msg_namelen: super::unistd::socklen_t,
     pub msg_iov: *mut iovec,
     pub msg_iovlen: u64,
     pub msg_control: *mut core::ffi::c_void,
     pub msg_controllen: u64,
     pub msg_flags: i32,
 }
+#[cfg(all(feature = "types", feature = "unistd"))]
 impl Default for msghdr {
     fn default() -> Self {
         unsafe { core::mem::zeroed() }
@@ -215,4 +225,3 @@ impl Default for sockaddr_storage {
         unsafe { core::mem::zeroed() }
     }
 }
-pub type socklen_t = u32;

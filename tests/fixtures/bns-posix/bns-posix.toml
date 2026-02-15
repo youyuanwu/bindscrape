@@ -4,7 +4,16 @@ include_paths = ["/usr/include/x86_64-linux-gnu", "/usr/include"]
 name = "posix"
 file = "bns-posix.winmd"
 
-# Partition 1: fcntl — creat + O_* flags
+# Partition 1: shared POSIX types — uid_t, pid_t, mode_t, off_t, gid_t, etc.
+# Must come first so the type registry claims these names (first-writer-wins)
+# and the dedup pass removes duplicates from later partitions.
+[[partition]]
+namespace = "posix.types"
+library = "c"
+headers = ["sys/types.h"]
+traverse = ["sys/types.h", "bits/types.h"]
+
+# Partition 2: fcntl — creat + O_* flags
 # open/openat/fcntl are variadic and will be auto-skipped
 [[partition]]
 namespace = "posix.fcntl"
@@ -12,35 +21,35 @@ library = "c"
 headers = ["fcntl.h"]
 traverse = ["fcntl.h", "bits/fcntl-linux.h"]
 
-# Partition 2: unistd — read/write/close/lseek
+# Partition 3: unistd — read/write/close/lseek
 [[partition]]
 namespace = "posix.unistd"
 library = "c"
 headers = ["unistd.h"]
 traverse = ["unistd.h"]
 
-# Partition 3: sys/stat — struct stat + stat/fstat/chmod + S_* constants
+# Partition 4: sys/stat — struct stat + stat/fstat/chmod + S_* constants
 [[partition]]
 namespace = "posix.stat"
 library = "c"
 headers = ["sys/stat.h"]
 traverse = ["sys/stat.h", "bits/struct_stat.h", "bits/types/struct_timespec.h"]
 
-# Partition 4: sys/mman — mmap/munmap/mprotect + MAP_*/PROT_* constants
+# Partition 5: sys/mman — mmap/munmap/mprotect + MAP_*/PROT_* constants
 [[partition]]
 namespace = "posix.mmap"
 library = "c"
 headers = ["sys/mman.h"]
 traverse = ["sys/mman.h", "bits/mman-linux.h", "bits/mman-map-flags-generic.h"]
 
-# Partition 5: dirent — opendir/readdir/closedir + struct dirent + DT_* constants
+# Partition 6: dirent — opendir/readdir/closedir + struct dirent + DT_* constants
 [[partition]]
 namespace = "posix.dirent"
 library = "c"
 headers = ["dirent.h"]
 traverse = ["dirent.h", "bits/dirent.h"]
 
-# Partition 6: sys/socket — socket/bind/listen/accept + AF_*/SOCK_*/SO_* constants
+# Partition 7: sys/socket — socket/bind/listen/accept + AF_*/SOCK_*/SO_* constants
 [[partition]]
 namespace = "posix.socket"
 library = "c"
@@ -53,16 +62,34 @@ traverse = [
     "bits/types/struct_iovec.h",
 ]
 
-# Partition 7: netinet/in + arpa/inet — sockaddr_in, in6_addr, inet_pton/ntop
+# Partition 8: netinet/in + arpa/inet — sockaddr_in, in6_addr, inet_pton/ntop
 [[partition]]
 namespace = "posix.inet"
 library = "c"
 headers = ["netinet/in.h", "arpa/inet.h"]
 traverse = ["netinet/in.h", "arpa/inet.h"]
 
-# Partition 8: netdb — getaddrinfo/freeaddrinfo + struct addrinfo + AI_* constants
+# Partition 9: netdb — getaddrinfo/freeaddrinfo + struct addrinfo + AI_* constants
 [[partition]]
 namespace = "posix.netdb"
 library = "c"
 headers = ["netdb.h"]
 traverse = ["netdb.h", "bits/netdb.h"]
+
+# Partition 10: signal — signal/sigaction/kill/raise + struct sigaction + SIG*/SA_* constants
+[[partition]]
+namespace = "posix.signal"
+library = "c"
+headers = ["signal.h"]
+traverse = [
+    "signal.h",
+    "bits/sigaction.h",
+    "bits/signum-generic.h",
+    "bits/signum-arch.h",
+    "bits/sigcontext.h",
+    "bits/types/__sigset_t.h",
+    "bits/types/siginfo_t.h",
+    "bits/types/__sigval_t.h",
+    "bits/types/stack_t.h",
+    "bits/types/struct_sigstack.h",
+]

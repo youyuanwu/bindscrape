@@ -811,6 +811,12 @@ fn should_emit_by_location(entity: &Entity, traverse_files: &[PathBuf], _base_di
 }
 
 /// Build a type registry from all partitions' extracted data.
+///
+/// Typedefs use first-writer-wins: the first partition to register a typedef
+/// name owns it. This means a dedicated "types" partition should come first
+/// in the TOML so it claims shared types like `uid_t`, `pid_t`, etc. before
+/// other partitions can. Structs and enums still use last-writer-wins (they
+/// rarely overlap across partitions).
 pub fn build_type_registry(
     partitions: &[Partition],
     namespace_overrides: &std::collections::HashMap<String, String>,
@@ -830,6 +836,11 @@ pub fn build_type_registry(
             registry.register(&e.name, ns);
         }
         for td in &partition.typedefs {
+            // First-writer-wins for typedefs: if already registered by an
+            // earlier partition (e.g. a shared types partition), skip.
+            if registry.contains(&td.name) {
+                continue;
+            }
             let ns = namespace_overrides
                 .get(&td.name)
                 .unwrap_or(&partition.namespace);

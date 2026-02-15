@@ -8,61 +8,74 @@
     clippy::all
 )]
 
-windows_link::link!("c" "C" fn chmod(__file : *const i8, __mode : u32) -> i32);
-windows_link::link!("c" "C" fn fchmod(__fd : i32, __mode : u32) -> i32);
-windows_link::link!("c" "C" fn fchmodat(__fd : i32, __file : *const i8, __mode : u32, __flag : i32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn chmod(__file : *const i8, __mode : super::types:: __mode_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn fchmod(__fd : i32, __mode : super::types:: __mode_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn fchmodat(__fd : i32, __file : *const i8, __mode : super::types:: __mode_t, __flag : i32) -> i32);
+#[cfg(feature = "types")]
 windows_link::link!("c" "C" fn fstat(__fd : i32, __buf : *const stat) -> i32);
+#[cfg(feature = "types")]
 windows_link::link!("c" "C" fn fstatat(__fd : i32, __file : *const i8, __buf : *const stat, __flag : i32) -> i32);
+#[cfg(feature = "types")]
 windows_link::link!("c" "C" fn futimens(__fd : i32, __times : *const timespec) -> i32);
-windows_link::link!("c" "C" fn lchmod(__file : *const i8, __mode : u32) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn lchmod(__file : *const i8, __mode : super::types:: __mode_t) -> i32);
+#[cfg(feature = "types")]
 windows_link::link!("c" "C" fn lstat(__file : *const i8, __buf : *const stat) -> i32);
-windows_link::link!("c" "C" fn mkdir(__path : *const i8, __mode : u32) -> i32);
-windows_link::link!("c" "C" fn mkdirat(__fd : i32, __path : *const i8, __mode : u32) -> i32);
-windows_link::link!("c" "C" fn mkfifo(__path : *const i8, __mode : u32) -> i32);
-windows_link::link!("c" "C" fn mkfifoat(__fd : i32, __path : *const i8, __mode : u32) -> i32);
-windows_link::link!("c" "C" fn mknod(__path : *const i8, __mode : u32, __dev : u64) -> i32);
-windows_link::link!("c" "C" fn mknodat(__fd : i32, __path : *const i8, __mode : u32, __dev : u64) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn mkdir(__path : *const i8, __mode : super::types:: __mode_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn mkdirat(__fd : i32, __path : *const i8, __mode : super::types:: __mode_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn mkfifo(__path : *const i8, __mode : super::types:: __mode_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn mkfifoat(__fd : i32, __path : *const i8, __mode : super::types:: __mode_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn mknod(__path : *const i8, __mode : super::types:: __mode_t, __dev : super::types:: __dev_t) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn mknodat(__fd : i32, __path : *const i8, __mode : super::types:: __mode_t, __dev : super::types:: __dev_t) -> i32);
+#[cfg(feature = "types")]
 windows_link::link!("c" "C" fn stat(__file : *const i8, __buf : *const stat) -> i32);
-windows_link::link!("c" "C" fn umask(__mask : u32) -> u32);
+#[cfg(feature = "types")]
+windows_link::link!("c" "C" fn umask(__mask : super::types:: __mode_t) -> super::types:: __mode_t);
+#[cfg(feature = "types")]
 windows_link::link!("c" "C" fn utimensat(__fd : i32, __path : *const i8, __times : *const timespec, __flags : i32) -> i32);
 pub const S_BLKSIZE: i32 = 512i32;
 pub const _BITS_STRUCT_STAT_H: i32 = 1i32;
 pub const _STRUCT_TIMESPEC: i32 = 1i32;
 pub const _SYS_STAT_H: i32 = 1i32;
-pub type dev_t = u64;
-pub type gid_t = u32;
-pub type ino_t = u64;
-pub type mode_t = u32;
-pub type nlink_t = u64;
-pub type off_t = i64;
 #[repr(C, packed(8))]
+#[cfg(feature = "types")]
 #[derive(Clone, Copy)]
 pub struct stat {
-    pub st_dev: u64,
-    pub st_ino: u64,
-    pub st_nlink: u64,
-    pub st_mode: u32,
-    pub st_uid: u32,
-    pub st_gid: u32,
+    pub st_dev: super::types::__dev_t,
+    pub st_ino: super::types::__ino_t,
+    pub st_nlink: super::types::__nlink_t,
+    pub st_mode: super::types::__mode_t,
+    pub st_uid: super::types::__uid_t,
+    pub st_gid: super::types::__gid_t,
     pub __pad0: i32,
-    pub st_rdev: u64,
-    pub st_size: i64,
-    pub st_blksize: i64,
-    pub st_blocks: i64,
+    pub st_rdev: super::types::__dev_t,
+    pub st_size: super::types::__off_t,
+    pub st_blksize: super::types::__blksize_t,
+    pub st_blocks: super::types::__blkcnt_t,
     pub st_atim: timespec,
     pub st_mtim: timespec,
     pub st_ctim: timespec,
-    pub __glibc_reserved: [i64; 3],
+    pub __glibc_reserved: [super::types::__syscall_slong_t; 3],
 }
+#[cfg(feature = "types")]
 impl Default for stat {
     fn default() -> Self {
         unsafe { core::mem::zeroed() }
     }
 }
 #[repr(C, packed(8))]
+#[cfg(feature = "types")]
 #[derive(Clone, Copy, Default)]
 pub struct timespec {
-    pub tv_sec: i64,
-    pub tv_nsec: i64,
+    pub tv_sec: super::types::__time_t,
+    pub tv_nsec: super::types::__syscall_slong_t,
 }
-pub type uid_t = u32;
