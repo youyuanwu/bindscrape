@@ -98,7 +98,7 @@ include_paths = [
 
 [output]
 name = "PosixFile"
-file = "posixfile.winmd"
+file = "bns-posix.winmd"
 
 # Partition 1: fcntl — creat + O_* flags
 # open/openat/fcntl are variadic and will be auto-skipped
@@ -349,7 +349,7 @@ Test against real filesystem operations using temp files.
 3. ✅ C `long` → `I64` for Linux LP64 ABI
 4. ✅ Array parameter decay → pointer in `extract_function()`
 5. ✅ Function deduplication via `HashSet` in `collect_functions()`
-6. ✅ Created `bindscrape/tests/fixtures/posixfile/posixfile.toml`
+6. ✅ Created `tests/fixtures/bns-posix/bns-posix.toml`
    (3 partitions: Fcntl, Unistd, Stat — no Types partition needed)
 7. ✅ Added 9 roundtrip tests in `roundtrip_posixfile.rs`
 8. ✅ Created `bns-posix/` crate with feature-gated namespace modules

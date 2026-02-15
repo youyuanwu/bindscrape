@@ -2,7 +2,7 @@ include_paths = ["/usr/include/x86_64-linux-gnu", "/usr/include"]
 
 [output]
 name = "PosixFile"
-file = "posixfile.winmd"
+file = "bns-posix.winmd"
 
 # Partition 1: fcntl — creat + O_* flags
 # open/openat/fcntl are variadic and will be auto-skipped

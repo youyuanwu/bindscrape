@@ -349,7 +349,7 @@ Suggested sequence:
 2. ⬜ Implement anonymous nested type synthetic naming
 3. ✅ System typedefs (`socklen_t`, `sa_family_t`, `in_port_t`,
    `in_addr_t`) auto-resolved via `CType::Named { resolved }` — no changes needed
-4. ⬜ Create `bindscrape/tests/fixtures/posixsocket/posixsocket.toml`
+4. ⬜ Create `tests/fixtures/posixsocket/posixsocket.toml`
 5. ⬜ Add roundtrip tests in `roundtrip_posixsocket.rs`
 6. ⬜ Create `tests/e2e-posixsocket/` crate
 7. ⬜ Handle `htons`/`htonl` (skip if inline, or provide wrapper)

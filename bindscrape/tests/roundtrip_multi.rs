@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::LazyLock;
 
 static MULTI_WINMD: LazyLock<Vec<u8>> = LazyLock::new(|| {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/multi/multi.toml");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/multi/multi.toml");
     bindscrape::generate(&path).expect("generate multi winmd")
 });
 

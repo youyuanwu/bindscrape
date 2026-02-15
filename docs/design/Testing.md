@@ -10,7 +10,7 @@ Prove the full pipeline works: **C header → bindscrape (winmd) → windows-bin
 ## Architecture
 
 ```
-bindscrape/tests/fixtures/
+tests/fixtures/
 ├── simple.h / simple.toml   ← single-partition (e2e-test)
 └── multi/                   ← multi-partition  (e2e-multi)
     ├── types.h, widget.h
@@ -233,7 +233,7 @@ Key points:
 ### Implementation Plan
 
 1. **Add test fixtures** — ✅ done
-   `bindscrape/tests/fixtures/multi/types.h`, `widget.h`, `multi.toml`
+   `tests/fixtures/multi/types.h`, `widget.h`, `multi.toml`
 2. **Add roundtrip tests** — ✅ done (5 multi-partition tests in `roundtrip.rs`)
    Verify types land in correct namespaces, traverse filtering, cross-partition TypeRef
 3. **Add `tests/e2e-multi/` crate** — ✅ done (8 tests)

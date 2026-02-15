@@ -73,7 +73,7 @@ tests/e2e-zlib/
 
 ## Config
 
-**`bindscrape/tests/fixtures/zlib/zlib.toml`**:
+**`tests/fixtures/zlib/zlib.toml`**:
 ```toml
 [output]
 name = "Zlib"
@@ -298,7 +298,7 @@ These exercise the generated Rust FFI bindings against the real `libz.so`.
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let fixtures = manifest_dir.join("../../bindscrape/tests/fixtures/zlib");
+    let fixtures = manifest_dir.join("../../tests/fixtures/zlib");
 
     // Step 1: Generate winmd
     let winmd_path = out_dir.join("zlib.winmd");
@@ -338,7 +338,7 @@ macro-based FFI.
 
 ## Implementation Steps
 
-1. ✅ Create `bindscrape/tests/fixtures/zlib/zlib.toml` (two partitions)
+1. ✅ Create `tests/fixtures/zlib/zlib.toml` (two partitions)
 2. ✅ Add zlib roundtrip tests in `roundtrip_zlib.rs` (6 tests)
 3. ✅ Create `tests/e2e-zlib/` crate (Cargo.toml, build.rs, src/, tests/)
 4. ✅ Fix `sonar::find_typedefs` — custom typedef discovery for typedef-to-typedef aliases

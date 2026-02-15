@@ -1,7 +1,7 @@
 fn main() {
     let manifest_dir = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
     let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
-    let fixtures = manifest_dir.join("../../bindscrape/tests/fixtures");
+    let fixtures = manifest_dir.join("../../tests/fixtures");
 
     // Step 1: Generate winmd from the C header
     let winmd_path = out_dir.join("simple_test.winmd");
@@ -34,6 +34,6 @@ fn main() {
     println!("cargo:rustc-link-arg=-Wl,-rpath,{}", target_dir.display());
 
     // Rerun if sources change
-    println!("cargo:rerun-if-changed=../../bindscrape/tests/fixtures/");
+    println!("cargo:rerun-if-changed=../../tests/fixtures/");
     println!("cargo:rerun-if-changed=../../bindscrape/src/");
 }

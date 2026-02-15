@@ -4,16 +4,16 @@ use std::path::Path;
 
 /// Generate the bns-posix source tree at `output_dir`.
 ///
-/// 1. Runs bindscrape on `posixfile.toml` to produce a `.winmd`.
+/// 1. Runs bindscrape on `bns-posix.toml` to produce a `.winmd`.
 /// 2. Runs `windows-bindgen --package` to emit `src/PosixFile/*/mod.rs`.
 /// 3. Deletes the intermediate `.winmd`.
 pub fn generate(output_dir: &Path) {
     let workspace_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
-    let fixtures = workspace_dir.join("bindscrape/tests/fixtures/posixfile");
+    let fixtures = workspace_dir.join("tests/fixtures/bns-posix");
 
     // Step 1: Generate .winmd
-    let winmd_path = output_dir.join("posixfile.winmd");
-    bindscrape::run(&fixtures.join("posixfile.toml"), Some(&winmd_path))
+    let winmd_path = output_dir.join("bns-posix.winmd");
+    bindscrape::run(&fixtures.join("bns-posix.toml"), Some(&winmd_path))
         .expect("bindscrape failed to generate winmd");
 
     // Step 2: Generate crate source tree via windows-bindgen package mode

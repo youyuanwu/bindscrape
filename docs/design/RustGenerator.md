@@ -101,13 +101,14 @@ bindscrape/
 └── tests/
     ├── roundtrip_simple.rs   # 8 tests — simple.h fixture (201 LOC)
     ├── roundtrip_multi.rs    # 5 tests — multi-partition fixture (141 LOC)
-    ├── roundtrip_zlib.rs     # 6 tests — zlib system header (200 LOC)
-    └── fixtures/
-        ├── simple.h / simple.toml
-        ├── multi/ (graphics.h, audio.h, multi.toml)
-        └── zlib/ (zlib.toml — references system headers)
+    └── roundtrip_zlib.rs     # 6 tests — zlib system header (200 LOC)
 
 tests/
+├── fixtures/
+│   ├── simple.h / simple.toml
+│   ├── multi/ (graphics.h, audio.h, multi.toml)
+│   ├── bns-posix/ (bns-posix.toml — POSIX file I/O headers)
+│   └── zlib/ (zlib.toml — references system headers)
 ├── simple-impl/              # Native C lib for e2e-test
 ├── e2e-test/                 # 6 E2E tests (single partition)
 ├── e2e-multi/                # 8 E2E tests (multi-partition)

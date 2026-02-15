@@ -47,7 +47,7 @@ and checked into the `bns-posix` source tree — there is no `build.rs`.
   bns-posix-gen (cargo run -p bns-posix-gen)
   ┌─────────────────────────────────────────────────────────┐
   │                                                         │
-  │  posixfile.toml ──▶ bindscrape ──▶ .winmd               │
+  │  bns-posix.toml ──▶ bindscrape ──▶ .winmd               │
   │                                      │                  │
   │                          windows-bindgen --package       │
   │                                      │                  │
@@ -68,7 +68,7 @@ To regenerate:
 cargo run -p bns-posix-gen
 ```
 
-1. **bindscrape** parses `posixfile.toml`, invokes clang on system headers,
+1. **bindscrape** parses `bns-posix.toml`, invokes clang on system headers,
    extracts types/functions/constants, and writes a temporary `.winmd` file.
 2. **windows-bindgen `--package`** reads the `.winmd` and generates one
    `mod.rs` per namespace under `src/PosixFile/`, with `#[cfg(feature)]`
@@ -86,7 +86,7 @@ own module. Cross-partition references use `super::Stat::mode_t` etc.
 
 ## Partition Config
 
-The TOML config lives at `bindscrape/tests/fixtures/posixfile/posixfile.toml`
+The TOML config lives at `tests/fixtures/bns-posix/bns-posix.toml`
 and defines three partitions:
 
 | Partition | Namespace | Headers traversed |
@@ -115,7 +115,7 @@ in bindscrape core (see [FileApis.md](systesting/FileApis.md) for details):
 
 To add more POSIX APIs (e.g., `sys/socket.h`, `pthread.h`):
 
-1. Add a new `[[partition]]` to `posixfile.toml` with the desired headers.
+1. Add a new `[[partition]]` to `bns-posix.toml` with the desired headers.
 2. Run `cargo run -p bns-posix-gen` — bindscrape extracts the new partition,
    windows-bindgen adds a new `src/PosixFile/<Name>/mod.rs` and appends
    the feature to `Cargo.toml`.

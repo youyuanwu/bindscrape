@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::LazyLock;
 
 static ZLIB_WINMD: LazyLock<Vec<u8>> = LazyLock::new(|| {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/zlib/zlib.toml");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/zlib/zlib.toml");
     bindscrape::generate(&path).expect("generate zlib winmd")
 });
 
