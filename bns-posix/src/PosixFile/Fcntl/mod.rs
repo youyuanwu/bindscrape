@@ -8,15 +8,19 @@
     clippy::all
 )]
 
-#[cfg(feature = "Stat")]
-windows_link::link!("c" "C" fn creat(__file : *const i8, __mode : super::Stat:: mode_t) -> i32);
-#[cfg(feature = "Stat")]
-windows_link::link!("c" "C" fn lockf(__fd : i32, __cmd : i32, __len : super::Stat:: off_t) -> i32);
-#[cfg(feature = "Stat")]
-windows_link::link!("c" "C" fn posix_fadvise(__fd : i32, __offset : super::Stat:: off_t, __len : super::Stat:: off_t, __advise : i32) -> i32);
-#[cfg(feature = "Stat")]
-windows_link::link!("c" "C" fn posix_fallocate(__fd : i32, __offset : super::Stat:: off_t, __len : super::Stat:: off_t) -> i32);
+#[cfg(feature = "Mmap")]
+windows_link::link!("c" "C" fn creat(__file : *const i8, __mode : super::Mmap:: mode_t) -> i32);
+#[cfg(feature = "Mmap")]
+windows_link::link!("c" "C" fn lockf(__fd : i32, __cmd : i32, __len : super::Mmap:: off_t) -> i32);
+#[cfg(feature = "Mmap")]
+windows_link::link!("c" "C" fn posix_fadvise(__fd : i32, __offset : super::Mmap:: off_t, __len : super::Mmap:: off_t, __advise : i32) -> i32);
+#[cfg(feature = "Mmap")]
+windows_link::link!("c" "C" fn posix_fallocate(__fd : i32, __offset : super::Mmap:: off_t, __len : super::Mmap:: off_t) -> i32);
+pub const AT_EACCESS: i32 = 512i32;
 pub const AT_FDCWD: i32 = -100i32;
+pub const AT_REMOVEDIR: i32 = 512i32;
+pub const AT_SYMLINK_FOLLOW: i32 = 1024i32;
+pub const AT_SYMLINK_NOFOLLOW: i32 = 256i32;
 pub const FD_CLOEXEC: i32 = 1i32;
 pub const F_DUPFD: i32 = 0i32;
 pub const F_DUPFD_CLOEXEC: i32 = 1030i32;

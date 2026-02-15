@@ -25,12 +25,47 @@ pub const DEFAULT_HEIGHT: i32 = 600i32;
 pub const DEFAULT_WIDTH: i32 = 800i32;
 pub const MAX_WIDGETS: i32 = 256i32;
 #[repr(C, packed(4))]
+#[derive(Clone, Copy)]
+pub struct NetAddr {
+    pub addr: NetAddr_addr,
+    pub scope_id: u32,
+}
+impl Default for NetAddr {
+    fn default() -> Self {
+        unsafe { core::mem::zeroed() }
+    }
+}
+#[repr(C, packed(4))]
+#[derive(Clone, Copy)]
+pub union NetAddr_addr {
+    pub bytes: [u8; 16],
+    pub words: [u16; 8],
+    pub dwords: [u32; 4],
+}
+impl Default for NetAddr_addr {
+    fn default() -> Self {
+        unsafe { core::mem::zeroed() }
+    }
+}
+#[repr(C, packed(4))]
 #[derive(Clone, Copy, Default)]
 pub struct Rect {
     pub x: i32,
     pub y: i32,
     pub width: u32,
     pub height: u32,
+}
+#[repr(C, packed(4))]
+#[derive(Clone, Copy)]
+pub union Value {
+    pub i: i32,
+    pub f: f32,
+    pub bytes: [u8; 4],
+}
+impl Default for Value {
+    fn default() -> Self {
+        unsafe { core::mem::zeroed() }
+    }
 }
 #[repr(C, packed(8))]
 #[derive(Clone, Copy)]

@@ -8,8 +8,12 @@
     clippy::all
 )]
 
+#[cfg(feature = "Dirent")]
+pub mod Dirent;
 #[cfg(feature = "Fcntl")]
 pub mod Fcntl;
+#[cfg(feature = "Mmap")]
+pub mod Mmap;
 #[cfg(feature = "Stat")]
 pub mod Stat;
 #[cfg(feature = "Unistd")]

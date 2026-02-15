@@ -9,6 +9,7 @@ license.workspace = true
 
 [dependencies]
 bindscrape = { path = "../bindscrape" }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 windows-bindgen = "0.66"
 
 [dev-dependencies]

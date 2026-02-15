@@ -8,8 +8,9 @@
 //! Do not edit it by hand — run `cargo run -p bns-posix-gen` to regenerate.
 //!
 //! # Modules
-//!
+//! - [`PosixFile::Dirent`] — Directory entries (`opendir`, `readdir`, `closedir`, `DT_*` constants)
 //! - [`PosixFile::Fcntl`] — File control (`creat`, `lockf`, `O_*` constants)
+//! - [`PosixFile::Mmap`] — Memory mapping (`mmap`, `munmap`, `mprotect`, `MAP_*`/`PROT_*` constants)
 //! - [`PosixFile::Stat`] — File status (`stat`, `chmod`, `mkdir`, `struct stat`)
 //! - [`PosixFile::Unistd`] — POSIX standard (`read`, `write`, `close`, `fork`, …)
 //!

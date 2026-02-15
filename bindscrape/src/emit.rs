@@ -131,11 +131,16 @@ fn emit_struct(
     registry: &TypeRegistry,
 ) -> Result<()> {
     let valuetype_ref = file.TypeRef("System", "ValueType");
+    let layout_attr = if s.is_union {
+        TypeAttributes::ExplicitLayout
+    } else {
+        TypeAttributes::SequentialLayout
+    };
     let td = file.TypeDef(
         namespace,
         &s.name,
         TypeDefOrRef::TypeRef(valuetype_ref),
-        TypeAttributes::Public | TypeAttributes::SequentialLayout,
+        TypeAttributes::Public | layout_attr,
     );
     file.ClassLayout(td, s.align as u16, s.size as u32);
 
@@ -192,7 +197,13 @@ fn emit_typedef(
         TypeAttributes::Public | TypeAttributes::SequentialLayout,
     );
 
-    let wintype = ctype_to_wintype(&td.underlying_type, namespace, registry);
+    // For opaque typedefs (underlying = Void, e.g. `typedef struct __dirstream DIR`
+    // where the struct is incomplete), use isize so windows-bindgen generates a
+    // copyable handle-like struct instead of `Value: core::ffi::c_void`.
+    let wintype = match &td.underlying_type {
+        CType::Void => Type::ISize,
+        other => ctype_to_wintype(other, namespace, registry),
+    };
     file.Field("Value", &wintype, FieldAttributes::Public);
 
     // Add NativeTypedefAttribute custom attribute
@@ -365,13 +376,16 @@ fn ctype_to_wintype(ctype: &CType, default_namespace: &str, registry: &TypeRegis
         CType::ISize => Type::ISize,
         CType::USize => Type::USize,
 
-        CType::Ptr { pointee, is_const } => {
+        CType::Ptr {
+            pointee,
+            is_const: _,
+        } => {
+            // Always emit PtrMut — windows-bindgen cannot parse nested
+            // PtrConst blobs (ELEMENT_TYPE_CMOD_REQD mid-chain panics in
+            // from_blob_impl). Const-ness is tracked by ConstAttribute on
+            // method parameters instead.
             let inner = ctype_to_wintype(pointee, default_namespace, registry);
-            if *is_const {
-                Type::PtrConst(Box::new(inner), 1)
-            } else {
-                Type::PtrMut(Box::new(inner), 1)
-            }
+            Type::PtrMut(Box::new(inner), 1)
         }
 
         CType::Array { element, len } => {

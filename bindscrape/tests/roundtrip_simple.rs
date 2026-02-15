@@ -29,6 +29,12 @@ fn roundtrip_typedefs_present() {
     assert!(has("Color"), "Color enum missing. Found: {types:?}");
     assert!(has("Rect"), "Rect struct missing. Found: {types:?}");
     assert!(has("Widget"), "Widget struct missing. Found: {types:?}");
+    assert!(has("Value"), "Value union missing. Found: {types:?}");
+    assert!(has("NetAddr"), "NetAddr struct missing. Found: {types:?}");
+    assert!(
+        has("NetAddr_addr"),
+        "NetAddr_addr synthetic union missing. Found: {types:?}"
+    );
     assert!(
         has("CompareFunc"),
         "CompareFunc delegate missing. Found: {types:?}"
@@ -85,6 +91,96 @@ fn roundtrip_struct_fields() {
     assert!(fields.contains(&"y".to_string()));
     assert!(fields.contains(&"width".to_string()));
     assert!(fields.contains(&"height".to_string()));
+}
+
+#[test]
+fn roundtrip_union_fields() {
+    let index = open_index();
+
+    let value = index.expect("SimpleTest", "Value");
+
+    // Union must have ExplicitLayout flag
+    let flags = value.flags();
+    assert!(
+        flags.contains(windows_metadata::TypeAttributes::ExplicitLayout),
+        "Value union should have ExplicitLayout flag, got: {flags:?}"
+    );
+
+    // Should extend System.ValueType (struct/union encoding)
+    let extends = value.extends().expect("union must extend something");
+    let extends_str = format!("{extends:?}");
+    assert!(
+        extends_str.contains("ValueType"),
+        "Value should extend System.ValueType, got: {extends_str}"
+    );
+
+    // Should have 3 fields: i, f, bytes
+    let fields: Vec<String> = value.fields().map(|f| f.name().to_string()).collect();
+    assert_eq!(
+        fields.len(),
+        3,
+        "Value union should have 3 fields, got: {fields:?}"
+    );
+    assert!(fields.contains(&"i".to_string()), "missing field 'i'");
+    assert!(fields.contains(&"f".to_string()), "missing field 'f'");
+    assert!(
+        fields.contains(&"bytes".to_string()),
+        "missing field 'bytes'"
+    );
+
+    // Should have ClassLayout with size > 0
+    let layout = value
+        .class_layout()
+        .expect("Value union should have ClassLayout");
+    assert!(
+        layout.class_size() > 0,
+        "ClassLayout size should be > 0, got: {}",
+        layout.class_size()
+    );
+}
+
+#[test]
+fn roundtrip_anonymous_nested_type() {
+    let index = open_index();
+
+    // NetAddr_addr is the synthetic type for the anonymous union inside NetAddr
+    let addr_union = index.expect("SimpleTest", "NetAddr_addr");
+
+    // Should be a union (ExplicitLayout)
+    let flags = addr_union.flags();
+    assert!(
+        flags.contains(windows_metadata::TypeAttributes::ExplicitLayout),
+        "NetAddr_addr should have ExplicitLayout (union), got: {flags:?}"
+    );
+
+    // Should have 3 fields: bytes, words, dwords
+    let fields: Vec<String> = addr_union.fields().map(|f| f.name().to_string()).collect();
+    assert_eq!(
+        fields.len(),
+        3,
+        "NetAddr_addr should have 3 fields, got: {fields:?}"
+    );
+    assert!(fields.contains(&"bytes".to_string()));
+    assert!(fields.contains(&"words".to_string()));
+    assert!(fields.contains(&"dwords".to_string()));
+
+    // NetAddr should reference NetAddr_addr in its addr field
+    let net_addr = index.expect("SimpleTest", "NetAddr");
+    let net_fields: Vec<String> = net_addr.fields().map(|f| f.name().to_string()).collect();
+    assert_eq!(
+        net_fields.len(),
+        2,
+        "NetAddr should have 2 fields, got: {net_fields:?}"
+    );
+    assert!(net_fields.contains(&"addr".to_string()));
+    assert!(net_fields.contains(&"scope_id".to_string()));
+
+    // NetAddr should NOT be a union
+    let net_flags = net_addr.flags();
+    assert!(
+        !net_flags.contains(windows_metadata::TypeAttributes::ExplicitLayout),
+        "NetAddr should NOT have ExplicitLayout, got: {net_flags:?}"
+    );
 }
 
 #[test]

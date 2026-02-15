@@ -25,6 +25,23 @@ typedef struct {
 // Function pointer (delegate)
 typedef int (*CompareFunc)(const void* a, const void* b);
 
+// Union
+typedef union {
+    int i;
+    float f;
+    unsigned char bytes[4];
+} Value;
+
+// Struct with anonymous nested union (like in6_addr)
+typedef struct {
+    union {
+        unsigned char  bytes[16];
+        unsigned short words[8];
+        unsigned int   dwords[4];
+    } addr;
+    unsigned int scope_id;
+} NetAddr;
+
 // Functions
 int create_widget(const char* name, Rect bounds, Widget* out);
 void destroy_widget(Widget* w);

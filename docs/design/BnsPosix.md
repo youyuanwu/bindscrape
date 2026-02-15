@@ -98,7 +98,7 @@ and defines three partitions:
 ## Challenges Solved
 
 These are issues encountered while building real system bindings and fixed
-in bindscrape core (see [FileApis.md](systesting/FileApis.md) for details):
+in bindscrape core (see [bns-posix.md](systesting/bns-posix.md) for details):
 
 1. **System typedef resolution** — `CType::Named { resolved }` carries
    clang's canonical type; no hardcoded table.

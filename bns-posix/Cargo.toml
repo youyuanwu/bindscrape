@@ -11,9 +11,11 @@ license.workspace = true
 windows-link = "0.2"
 
 [features]
-default = ["Fcntl", "Stat", "Unistd"]
+default = ["Dirent", "Fcntl", "Mmap", "Stat", "Unistd"]
 Foundation = []
 # generated features
+Dirent = ["Foundation"]
 Fcntl = ["Foundation"]
+Mmap = ["Foundation"]
 Stat = ["Foundation"]
 Unistd = ["Foundation"]

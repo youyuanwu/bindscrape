@@ -25,3 +25,17 @@ namespace = "PosixFile.Stat"
 library = "c"
 headers = ["sys/stat.h"]
 traverse = ["sys/stat.h", "bits/struct_stat.h", "bits/types/struct_timespec.h"]
+
+# Partition 4: sys/mman — mmap/munmap/mprotect + MAP_*/PROT_* constants
+[[partition]]
+namespace = "PosixFile.Mmap"
+library = "c"
+headers = ["sys/mman.h"]
+traverse = ["sys/mman.h", "bits/mman-linux.h", "bits/mman-map-flags-generic.h"]
+
+# Partition 5: dirent — opendir/readdir/closedir + struct dirent + DT_* constants
+[[partition]]
+namespace = "PosixFile.Dirent"
+library = "c"
+headers = ["dirent.h"]
+traverse = ["dirent.h", "bits/dirent.h"]

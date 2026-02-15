@@ -79,6 +79,41 @@ mod tests {
     }
 
     #[test]
+    fn test_union_layout() {
+        // Value union should be 4 bytes (max of i32, f32, [u8; 4])
+        assert_eq!(std::mem::size_of::<Value>(), 4);
+        assert_eq!(std::mem::align_of::<Value>(), 4);
+
+        let mut v = Value { i: 0x41424344 };
+        assert_eq!(unsafe { v.i }, 0x41424344);
+
+        // Writing via one field and reading via another — classic union behavior
+        v.f = 1.0_f32;
+        assert_eq!(unsafe { v.f }, 1.0);
+        // IEEE 754: 1.0f == 0x3F800000
+        assert_eq!(unsafe { v.i }, 0x3F80_0000_i32);
+        assert_eq!(unsafe { v.bytes }, 1.0_f32.to_ne_bytes());
+    }
+
+    #[test]
+    fn test_anonymous_nested_union() {
+        // NetAddr contains an anonymous union field 'addr' extracted as NetAddr_addr
+        assert_eq!(std::mem::size_of::<NetAddr>(), 20);
+        assert_eq!(std::mem::size_of::<NetAddr_addr>(), 16);
+
+        let mut na = NetAddr::default();
+        // Write via dwords and read back via bytes/words
+        na.addr.dwords = [0x04030201, 0x08070605, 0x0C0B0A09, 0x100F0E0D];
+        unsafe {
+            assert_eq!(na.addr.bytes[0], 0x01);
+            assert_eq!(na.addr.bytes[15], 0x10);
+            assert_eq!(na.addr.words[0], 0x0201);
+        }
+        na.scope_id = 42;
+        assert_eq!(na.scope_id, 42);
+    }
+
+    #[test]
     fn test_delegate_type_exists() {
         // Verify CompareFunc delegate compiles and has the right signature.
         unsafe extern "system" fn cmp(

@@ -17,13 +17,15 @@ pub struct Partition {
     pub constants: Vec<ConstantDef>,
 }
 
-/// A C struct definition.
+/// A C struct or union definition.
 #[derive(Debug)]
 pub struct StructDef {
     pub name: String,
     pub size: usize,
     pub align: usize,
     pub fields: Vec<FieldDef>,
+    /// True if this is a C `union` (all fields at offset 0).
+    pub is_union: bool,
 }
 
 /// A single struct field.

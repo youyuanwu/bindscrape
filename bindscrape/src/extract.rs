@@ -53,10 +53,13 @@ pub fn extract_partition(
     let in_scope = |e: &Entity| should_emit(e, &resolved_traverse, base_dir);
 
     let structs = collect_structs(&entities, &in_scope);
-    let enums = collect_enums(&entities, &in_scope);
+    let (enums, anon_enum_constants) = collect_enums(&entities, &in_scope);
     let functions = collect_functions(&entities, &in_scope);
     let typedefs = collect_typedefs(&entities, &in_scope);
-    let constants = collect_constants(&entities, &in_scope);
+    let mut constants = collect_constants(&entities, &in_scope);
+
+    // Merge in constants extracted from anonymous enums
+    constants.extend(anon_enum_constants);
 
     tracing::info!(
         namespace = %partition.namespace,
@@ -96,20 +99,28 @@ fn collect_structs(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -> 
         }
         seen.insert(decl.name.clone());
         match extract_struct(&decl) {
-            Ok(s) => {
+            Ok((s, nested)) => {
                 debug!(name = %s.name, fields = s.fields.len(), size = s.size, "extracted struct");
+                for ns in nested {
+                    seen.insert(ns.name.clone());
+                    debug!(name = %ns.name, fields = ns.fields.len(), "  nested anonymous type");
+                    structs.push(ns);
+                }
                 structs.push(s);
             }
             Err(e) => warn!(name = %decl.name, err = %e, "skipping struct"),
         }
     }
 
-    // Supplemental: StructDecl entities with full definitions that sonar
-    // missed (e.g. `struct gzFile_s` which only has a pointer typedef).
+    // Supplemental: StructDecl/UnionDecl entities with full definitions that
+    // sonar missed (e.g. `struct gzFile_s` which only has a pointer typedef,
+    // or any union — sonar has no find_unions).
     for entity in entities {
-        if entity.get_kind() != EntityKind::StructDecl {
-            continue;
-        }
+        let is_union = match entity.get_kind() {
+            EntityKind::StructDecl => false,
+            EntityKind::UnionDecl => true,
+            _ => continue,
+        };
         if !in_scope(entity) {
             continue;
         }
@@ -121,12 +132,18 @@ fn collect_structs(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -> 
             continue;
         }
         seen.insert(name.clone());
-        match extract_struct_from_entity(entity, &name) {
-            Ok(s) => {
-                debug!(name = %s.name, fields = s.fields.len(), size = s.size, "extracted struct (supplemental)");
+        match extract_struct_from_entity(entity, &name, is_union) {
+            Ok((s, nested)) => {
+                let kind = if is_union { "union" } else { "struct" };
+                debug!(name = %s.name, fields = s.fields.len(), size = s.size, "extracted {kind} (supplemental)");
+                for ns in nested {
+                    seen.insert(ns.name.clone());
+                    debug!(name = %ns.name, fields = ns.fields.len(), "  nested anonymous type");
+                    structs.push(ns);
+                }
                 structs.push(s);
             }
-            Err(e) => warn!(name = %name, err = %e, "skipping struct"),
+            Err(e) => warn!(name = %name, err = %e, "skipping struct/union"),
         }
     }
 
@@ -134,10 +151,42 @@ fn collect_structs(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -> 
 }
 
 /// Collect enums via sonar.
-fn collect_enums(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -> Vec<EnumDef> {
+fn collect_enums(
+    entities: &[Entity],
+    in_scope: &impl Fn(&Entity) -> bool,
+) -> (Vec<EnumDef>, Vec<ConstantDef>) {
     let mut enums = Vec::new();
+    let mut anon_constants = Vec::new();
     for decl in sonar::find_enums(entities.to_vec()) {
         if !in_scope(&decl.entity) {
+            continue;
+        }
+        // Detect anonymous enums (e.g. `enum { DT_UNKNOWN = 0, ... }`).
+        // clang gives them names like "enum (unnamed at /usr/include/dirent.h:97:1)".
+        // These are just collections of integer constants in C — emit their
+        // variants as standalone ConstantDef entries instead of a named enum.
+        if decl.entity.is_anonymous() || decl.name.contains("(unnamed") {
+            match extract_enum(&decl) {
+                Ok(en) => {
+                    debug!(
+                        name = %decl.name,
+                        variants = en.variants.len(),
+                        "anonymous enum → emitting variants as constants"
+                    );
+                    for variant in en.variants {
+                        let value = if variant.signed_value < 0 {
+                            ConstantValue::Signed(variant.signed_value)
+                        } else {
+                            ConstantValue::Unsigned(variant.unsigned_value)
+                        };
+                        anon_constants.push(ConstantDef {
+                            name: variant.name,
+                            value,
+                        });
+                    }
+                }
+                Err(e) => warn!(name = %decl.name, err = %e, "skipping anonymous enum"),
+            }
             continue;
         }
         match extract_enum(&decl) {
@@ -148,7 +197,7 @@ fn collect_enums(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -> Ve
             Err(e) => warn!(name = %decl.name, err = %e, "skipping enum"),
         }
     }
-    enums
+    (enums, anon_constants)
 }
 
 /// Collect functions via sonar.
@@ -220,9 +269,12 @@ fn collect_typedefs(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) ->
     typedefs
 }
 
-/// Collect `#define` constants via sonar.
+/// Collect `#define` constants via sonar + supplemental hex parsing.
 fn collect_constants(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -> Vec<ConstantDef> {
     let mut constants = Vec::new();
+    let mut seen = HashSet::new();
+
+    // Primary: sonar-discovered constants (decimal integers + floats)
     for def in sonar::find_definitions(entities.to_vec()) {
         if !in_scope(&def.entity) {
             continue;
@@ -240,36 +292,121 @@ fn collect_constants(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -
             DefinitionValue::Real(val) => ConstantValue::Float(val),
         };
         debug!(name = %def.name, "extracted #define constant");
+        seen.insert(def.name.clone());
         constants.push(ConstantDef {
             name: def.name,
             value,
         });
     }
+
+    // Supplemental: hex constants that sonar's u64::from_str misses.
+    // sonar only parses decimal; `#define PROT_READ 0x1` is silently skipped.
+    for entity in entities {
+        if entity.get_kind() != EntityKind::MacroDefinition {
+            continue;
+        }
+        if !in_scope(entity) {
+            continue;
+        }
+        let name = match entity.get_name() {
+            Some(n) if !n.is_empty() => n,
+            _ => continue,
+        };
+        if seen.contains(&name) {
+            continue;
+        }
+        if let Some(range) = entity.get_range() {
+            let mut tokens: Vec<String> =
+                range.tokenize().iter().map(|t| t.get_spelling()).collect();
+            // Strip trailing "#" that clang sometimes appends
+            if tokens.last().is_some_and(|t| t == "#") {
+                tokens.pop();
+            }
+            let (negated, number) = if tokens.len() == 2 {
+                (false, &tokens[1])
+            } else if tokens.len() == 3 && tokens[1] == "-" {
+                (true, &tokens[2])
+            } else {
+                continue;
+            };
+            if let Some(val) = parse_hex_or_suffixed_int(number) {
+                let value = if negated {
+                    ConstantValue::Signed(-(val as i64))
+                } else if val <= i64::MAX as u64 {
+                    ConstantValue::Signed(val as i64)
+                } else {
+                    ConstantValue::Unsigned(val)
+                };
+                debug!(name = %name, "extracted #define hex constant");
+                seen.insert(name.clone());
+                constants.push(ConstantDef { name, value });
+            }
+        }
+    }
+
     constants
+}
+
+/// Parse a hex literal (`0x1F`) or a suffixed integer (`1U`, `0x10UL`, etc.)
+/// that `u64::from_str` can't handle. Returns None if not parseable.
+fn parse_hex_or_suffixed_int(s: &str) -> Option<u64> {
+    // Strip trailing integer suffixes: U, L, LL, UL, ULL (case-insensitive)
+    let s = s.trim_end_matches(['u', 'U', 'l', 'L']);
+
+    if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
+        u64::from_str_radix(hex, 16).ok()
+    } else if let Some(octal) = s.strip_prefix("0") {
+        if octal.is_empty() {
+            Some(0) // "0" with suffixes stripped
+        } else if octal.chars().all(|c| c.is_ascii_digit()) {
+            u64::from_str_radix(octal, 8).ok()
+        } else {
+            None
+        }
+    } else {
+        // Try decimal (handles cases where suffix stripping exposed a plain decimal)
+        s.parse::<u64>().ok()
+    }
 }
 
 // ---------------------------------------------------------------------------
 // Struct extraction
 // ---------------------------------------------------------------------------
 
-fn extract_struct(decl: &Declaration) -> Result<StructDef> {
-    extract_struct_from_entity(&decl.entity, &decl.name)
+fn extract_struct(decl: &Declaration) -> Result<(StructDef, Vec<StructDef>)> {
+    extract_struct_from_entity(&decl.entity, &decl.name, false)
 }
 
-fn extract_struct_from_entity(entity: &Entity, name: &str) -> Result<StructDef> {
+fn extract_struct_from_entity(
+    entity: &Entity,
+    name: &str,
+    is_union: bool,
+) -> Result<(StructDef, Vec<StructDef>)> {
     let ty = entity.get_type().context("struct has no type")?;
     let size = ty.get_sizeof().unwrap_or(0);
     let align = ty.get_alignof().unwrap_or(0);
 
     let mut fields = Vec::new();
+    let mut nested_types = Vec::new();
     for child in entity.get_children() {
         if child.get_kind() != EntityKind::FieldDecl {
             continue;
         }
         let field_name = child.get_name().unwrap_or_default();
         let field_type = child.get_type().context("field has no type")?;
-        let ctype = map_clang_type(&field_type)
-            .with_context(|| format!("unsupported type for field '{}'", field_name))?;
+
+        // Check for anonymous record type (unnamed struct/union used as a field type).
+        // Clang gives these names like "union (unnamed at file.h:37:5)" which can't
+        // be resolved. We extract them as separate TypeDefs with synthetic names.
+        let ctype =
+            match try_extract_anonymous_field(&field_type, name, &field_name, &mut nested_types) {
+                Some(synthetic_name) => CType::Named {
+                    name: synthetic_name,
+                    resolved: None,
+                },
+                None => map_clang_type(&field_type)
+                    .with_context(|| format!("unsupported type for field '{}'", field_name))?,
+            };
 
         let bitfield_width = if child.is_bit_field() {
             child.get_bit_field_width()
@@ -291,12 +428,66 @@ fn extract_struct_from_entity(entity: &Entity, name: &str) -> Result<StructDef> 
         });
     }
 
-    Ok(StructDef {
-        name: name.to_string(),
-        size,
-        align,
-        fields,
-    })
+    Ok((
+        StructDef {
+            name: name.to_string(),
+            size,
+            align,
+            fields,
+            is_union,
+        },
+        nested_types,
+    ))
+}
+
+/// Try to extract an anonymous record field type as a synthetic named type.
+///
+/// When a struct/union contains a field whose type is an anonymous record
+/// (e.g. `union { int a; float b; } field;`), clang gives it a non-portable
+/// name like `"union (unnamed at file.h:37:5)"`. This function detects that
+/// case, recursively extracts the anonymous record as a separate `StructDef`
+/// with a synthetic name `ParentName_FieldName`, and returns the synthetic
+/// name so the caller can reference it.
+fn try_extract_anonymous_field(
+    field_type: &ClangType,
+    parent_name: &str,
+    field_name: &str,
+    nested_types: &mut Vec<StructDef>,
+) -> Option<String> {
+    let canonical = field_type.get_canonical_type();
+    if canonical.get_kind() != TypeKind::Record {
+        return None;
+    }
+    let decl = canonical.get_declaration()?;
+    if !decl.is_anonymous() {
+        return None;
+    }
+    let is_nested_union = decl.get_kind() == EntityKind::UnionDecl;
+    let synthetic_name = format!("{}_{}", parent_name, field_name);
+
+    match extract_struct_from_entity(&decl, &synthetic_name, is_nested_union) {
+        Ok((nested, mut more)) => {
+            let kind = if is_nested_union { "union" } else { "struct" };
+            debug!(
+                parent = %parent_name,
+                field = %field_name,
+                synthetic = %synthetic_name,
+                "extracted anonymous {kind} as synthetic type"
+            );
+            nested_types.push(nested);
+            nested_types.append(&mut more); // handle deeply nested anonymous types
+            Some(synthetic_name)
+        }
+        Err(e) => {
+            warn!(
+                parent = %parent_name,
+                field = %field_name,
+                err = %e,
+                "failed to extract anonymous nested type"
+            );
+            None
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------

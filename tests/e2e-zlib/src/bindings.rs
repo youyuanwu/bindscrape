@@ -92,6 +92,7 @@ pub type Byte = u8;
 pub type Bytef = Byte;
 pub const MAX_MEM_LEVEL: i32 = 9i32;
 pub const MAX_WBITS: i32 = 15i32;
+pub const ZLIB_VERNUM: i32 = 4864i32;
 pub const ZLIB_VER_MAJOR: i32 = 1i32;
 pub const ZLIB_VER_MINOR: i32 = 3i32;
 pub const ZLIB_VER_REVISION: i32 = 0i32;

@@ -1,7 +1,9 @@
 //! End-to-end tests exercising the generated POSIX file I/O bindings against
 //! real libc on Linux.
 
+use bns_posix::PosixFile::Dirent;
 use bns_posix::PosixFile::Fcntl;
+use bns_posix::PosixFile::Mmap;
 use bns_posix::PosixFile::Stat;
 use bns_posix::PosixFile::Unistd;
 
@@ -255,4 +257,184 @@ fn timespec_struct_size() {
         16,
         "struct timespec should be 16 bytes"
     );
+}
+
+// ---------------------------------------------------------------------------
+// Mmap — memory mapping
+// ---------------------------------------------------------------------------
+
+#[test]
+fn prot_constants() {
+    assert_eq!(Mmap::PROT_NONE, 0);
+    assert_eq!(Mmap::PROT_READ, 1);
+    assert_eq!(Mmap::PROT_WRITE, 2);
+    assert_eq!(Mmap::PROT_EXEC, 4);
+}
+
+#[test]
+fn map_constants() {
+    assert_eq!(Mmap::MAP_SHARED, 1);
+    assert_eq!(Mmap::MAP_PRIVATE, 2);
+    assert_eq!(Mmap::MAP_FIXED, 0x10);
+    assert_eq!(Mmap::MAP_ANONYMOUS, 0x20);
+}
+
+#[test]
+fn msync_constants() {
+    assert_eq!(Mmap::MS_ASYNC, 1);
+    assert_eq!(Mmap::MS_INVALIDATE, 2);
+    assert_eq!(Mmap::MS_SYNC, 4);
+}
+
+#[test]
+fn mmap_anonymous_roundtrip() {
+    unsafe {
+        let size: u64 = 4096;
+        let ptr = Mmap::mmap(
+            core::ptr::null(),
+            size,
+            Mmap::PROT_READ | Mmap::PROT_WRITE,
+            Mmap::MAP_PRIVATE | Mmap::MAP_ANONYMOUS,
+            -1, // no fd for anonymous
+            0,
+        );
+        // MAP_FAILED is ((void *)-1)
+        assert_ne!(
+            ptr as usize,
+            usize::MAX,
+            "mmap should not return MAP_FAILED"
+        );
+
+        // Write and read back
+        let slice = std::slice::from_raw_parts_mut(ptr as *mut u8, size as usize);
+        slice[0] = 0xAB;
+        slice[4095] = 0xCD;
+        assert_eq!(slice[0], 0xAB);
+        assert_eq!(slice[4095], 0xCD);
+
+        let ret = Mmap::munmap(ptr, size);
+        assert_eq!(ret, 0, "munmap should succeed");
+    }
+}
+
+#[test]
+fn mprotect_guard_page() {
+    unsafe {
+        let size: u64 = 4096;
+        let ptr = Mmap::mmap(
+            core::ptr::null(),
+            size,
+            Mmap::PROT_READ | Mmap::PROT_WRITE,
+            Mmap::MAP_PRIVATE | Mmap::MAP_ANONYMOUS,
+            -1,
+            0,
+        );
+        assert_ne!(ptr as usize, usize::MAX);
+
+        // Make read-only
+        let ret = Mmap::mprotect(ptr, size, Mmap::PROT_READ);
+        assert_eq!(ret, 0, "mprotect to PROT_READ should succeed");
+
+        // Restore read-write
+        let ret = Mmap::mprotect(ptr, size, Mmap::PROT_READ | Mmap::PROT_WRITE);
+        assert_eq!(ret, 0, "mprotect to PROT_READ|PROT_WRITE should succeed");
+
+        Mmap::munmap(ptr, size);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Dirent — directory entry constants & roundtrip
+// ---------------------------------------------------------------------------
+
+#[test]
+fn dt_type_constants() {
+    assert_eq!(Dirent::DT_UNKNOWN, 0);
+    assert_eq!(Dirent::DT_FIFO, 1);
+    assert_eq!(Dirent::DT_CHR, 2);
+    assert_eq!(Dirent::DT_DIR, 4);
+    assert_eq!(Dirent::DT_BLK, 6);
+    assert_eq!(Dirent::DT_REG, 8);
+    assert_eq!(Dirent::DT_LNK, 10);
+    assert_eq!(Dirent::DT_SOCK, 12);
+}
+
+#[test]
+fn dirent_struct_size() {
+    // On glibc/x86_64 with _DIRENT_MATCHES_DIRENT64, struct dirent is 280 bytes
+    let size = core::mem::size_of::<Dirent::dirent>();
+    assert_eq!(
+        size, 280,
+        "struct dirent should be 280 bytes on x86_64 glibc"
+    );
+}
+
+#[test]
+fn opendir_readdir_closedir_roundtrip() {
+    unsafe {
+        let path = CString::new("/tmp").unwrap();
+        let dir = Dirent::opendir(path.as_ptr());
+        assert!(!dir.is_null(), "opendir(\"/tmp\") should succeed");
+
+        // Read at least one entry
+        let entry = Dirent::readdir(dir);
+        assert!(!entry.is_null(), "readdir should return at least one entry");
+
+        // Every entry should have a non-zero d_ino (on a real filesystem)
+        let d = &*entry;
+        assert_ne!(d.d_ino, 0, "d_ino should be non-zero");
+        // d_type should be a known value (0..14)
+        assert!(d.d_type <= 14, "d_type should be a valid type");
+
+        let ret = Dirent::closedir(dir);
+        assert_eq!(ret, 0, "closedir should succeed");
+    }
+}
+
+#[test]
+fn readdir_dot_entries() {
+    // Reading a directory should produce "." and ".." entries
+    unsafe {
+        let path = CString::new("/tmp").unwrap();
+        let dir = Dirent::opendir(path.as_ptr());
+        assert!(!dir.is_null());
+
+        let mut found_dot = false;
+        let mut found_dotdot = false;
+
+        loop {
+            let entry = Dirent::readdir(dir);
+            if entry.is_null() {
+                break;
+            }
+            let d = &*entry;
+            let name = std::ffi::CStr::from_ptr(d.d_name.as_ptr());
+            if name.to_bytes() == b"." {
+                found_dot = true;
+                assert_eq!(d.d_type, Dirent::DT_DIR as u8);
+            } else if name.to_bytes() == b".." {
+                found_dotdot = true;
+                assert_eq!(d.d_type, Dirent::DT_DIR as u8);
+            }
+        }
+
+        assert!(found_dot, "should find '.' entry");
+        assert!(found_dotdot, "should find '..' entry");
+
+        Dirent::closedir(dir);
+    }
+}
+
+#[test]
+fn dirfd_returns_valid_fd() {
+    unsafe {
+        let path = CString::new("/tmp").unwrap();
+        let dir = Dirent::opendir(path.as_ptr());
+        assert!(!dir.is_null());
+
+        let fd = Dirent::dirfd(dir);
+        assert!(fd >= 0, "dirfd should return a valid file descriptor");
+
+        Dirent::closedir(dir);
+    }
 }
