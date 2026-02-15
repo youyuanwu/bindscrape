@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["bindscrape", "tests/simple-impl", "tests/e2e-test", "tests/e2e-multi"]
+members = ["bindscrape", "tests/simple-impl", "tests/e2e-test", "tests/e2e-multi", "tests/e2e-zlib"]
 
 package.edition = "2024"
 package.authors = [ "youyuanwu@outlook.com" ]

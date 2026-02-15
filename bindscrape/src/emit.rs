@@ -55,7 +55,7 @@ fn emit_partition(file: &mut File, partition: &Partition, registry: &TypeRegistr
         );
 
         for f in &partition.functions {
-            emit_function(file, f, &partition.library, registry)?;
+            emit_function(file, ns, f, &partition.library, registry)?;
         }
 
         // Emit #define constants as static literal fields on the Apis class
@@ -273,15 +273,16 @@ fn emit_delegate(
 
 fn emit_function(
     file: &mut File,
+    namespace: &str,
     f: &FunctionDef,
     library: &str,
     registry: &TypeRegistry,
 ) -> Result<()> {
-    let ret_wintype = ctype_to_wintype(&f.return_type, "", registry);
+    let ret_wintype = ctype_to_wintype(&f.return_type, namespace, registry);
     let param_wintypes: Vec<Type> = f
         .params
         .iter()
-        .map(|p| ctype_to_wintype(&p.ty, "", registry))
+        .map(|p| ctype_to_wintype(&p.ty, namespace, registry))
         .collect();
 
     let sig = Signature {
@@ -347,6 +348,30 @@ fn emit_constant(file: &mut File, c: &ConstantDef) -> Result<()> {
 // CType → windows_metadata::Type mapping
 // ---------------------------------------------------------------------------
 
+/// Map well-known C/POSIX typedef names to winmd primitive types.
+/// These are system typedefs that won't appear in any partition's extracted
+/// types but show up in function signatures and struct fields.
+fn map_system_typedef(name: &str) -> Option<Type> {
+    match name {
+        // <stdint.h> / compiler built-in fixed-width integers
+        "int8_t" | "__int8" => Some(Type::I8),
+        "uint8_t" => Some(Type::U8),
+        "int16_t" | "__int16" => Some(Type::I16),
+        "uint16_t" => Some(Type::U16),
+        "int32_t" | "__int32" => Some(Type::I32),
+        "uint32_t" => Some(Type::U32),
+        "int64_t" | "__int64" => Some(Type::I64),
+        "uint64_t" => Some(Type::U64),
+        // <stddef.h> / <sys/types.h> pointer-sized types
+        "size_t" | "uintptr_t" => Some(Type::USize),
+        "ssize_t" | "intptr_t" | "ptrdiff_t" => Some(Type::ISize),
+        // POSIX off_t family — platform-dependent but always an integer.
+        // Map to ISize (pointer-width signed) which is the common case.
+        "off_t" | "__off_t" | "off64_t" | "__off64_t" => Some(Type::I64),
+        _ => None,
+    }
+}
+
 fn ctype_to_wintype(ctype: &CType, default_namespace: &str, registry: &TypeRegistry) -> Type {
     match ctype {
         CType::Void => Type::Void,
@@ -379,8 +404,20 @@ fn ctype_to_wintype(ctype: &CType, default_namespace: &str, registry: &TypeRegis
         }
 
         CType::Named { name } => {
-            let ns = registry.namespace_for(name, default_namespace);
-            Type::named(&ns, name)
+            // If the type is registered (user-defined / extracted), emit a TypeRef.
+            // Otherwise it's a system typedef (int32_t, off_t, etc.) — map to
+            // the equivalent winmd primitive so we don't emit unresolvable refs.
+            if registry.contains(name) {
+                let ns = registry.namespace_for(name, default_namespace);
+                Type::named(&ns, name)
+            } else if let Some(prim) = map_system_typedef(name) {
+                prim
+            } else {
+                // Unknown type with no primitive mapping — emit as TypeRef and
+                // let windows-bindgen report the error with context.
+                let ns = registry.namespace_for(name, default_namespace);
+                Type::named(&ns, name)
+            }
         }
 
         CType::FnPtr { .. } => {

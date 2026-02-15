@@ -160,6 +160,12 @@ impl TypeRegistry {
         self.types.insert(name.to_string(), namespace.to_string());
     }
 
+    /// Returns true if the type name is registered (i.e. was extracted from
+    /// a partition, as opposed to being a system/platform typedef).
+    pub fn contains(&self, name: &str) -> bool {
+        self.types.contains_key(name)
+    }
+
     /// Look up the namespace for a named type. Returns the type's own
     /// namespace if registered, otherwise falls back to `default_namespace`.
     pub fn namespace_for(&self, name: &str, default_namespace: &str) -> String {

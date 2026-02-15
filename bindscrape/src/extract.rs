@@ -3,6 +3,8 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
+use std::collections::HashSet;
+
 use clang::{
     CallingConvention, Entity, EntityKind, Index, Type as ClangType, TypeKind,
     sonar::{self, Declaration, DefinitionValue},
@@ -41,90 +43,11 @@ pub fn extract_partition(
 
     let in_scope = |e: &Entity| should_emit(e, traverse_files, base_dir);
 
-    // Extract structs
-    let mut structs = Vec::new();
-    for decl in sonar::find_structs(entities.clone()) {
-        if !in_scope(&decl.entity) {
-            continue;
-        }
-        match extract_struct(&decl) {
-            Ok(s) => {
-                debug!(name = %s.name, fields = s.fields.len(), size = s.size, "extracted struct");
-                structs.push(s);
-            }
-            Err(e) => warn!(name = %decl.name, err = %e, "skipping struct"),
-        }
-    }
-
-    // Extract enums
-    let mut enums = Vec::new();
-    for decl in sonar::find_enums(entities.clone()) {
-        if !in_scope(&decl.entity) {
-            continue;
-        }
-        match extract_enum(&decl) {
-            Ok(en) => {
-                debug!(name = %en.name, variants = en.variants.len(), "extracted enum");
-                enums.push(en);
-            }
-            Err(e) => warn!(name = %decl.name, err = %e, "skipping enum"),
-        }
-    }
-
-    // Extract functions
-    let mut functions = Vec::new();
-    for decl in sonar::find_functions(entities.clone()) {
-        if !in_scope(&decl.entity) {
-            continue;
-        }
-        match extract_function(&decl) {
-            Ok(f) => {
-                debug!(name = %f.name, params = f.params.len(), "extracted function");
-                functions.push(f);
-            }
-            Err(e) => warn!(name = %decl.name, err = %e, "skipping function"),
-        }
-    }
-
-    // Extract typedefs
-    let mut typedefs = Vec::new();
-    for decl in sonar::find_typedefs(entities.clone()) {
-        if !in_scope(&decl.entity) {
-            continue;
-        }
-        match extract_typedef(&decl) {
-            Ok(td) => {
-                debug!(name = %td.name, "extracted typedef");
-                typedefs.push(td);
-            }
-            Err(e) => warn!(name = %decl.name, err = %e, "skipping typedef"),
-        }
-    }
-
-    // Extract #define constants
-    let mut constants = Vec::new();
-    for def in sonar::find_definitions(entities) {
-        if !should_emit_by_location(&def.entity, traverse_files, base_dir) {
-            continue;
-        }
-        let value = match def.value {
-            DefinitionValue::Integer(negated, val) => {
-                if negated {
-                    ConstantValue::Signed(-(val as i64))
-                } else if val <= i64::MAX as u64 {
-                    ConstantValue::Signed(val as i64)
-                } else {
-                    ConstantValue::Unsigned(val)
-                }
-            }
-            DefinitionValue::Real(val) => ConstantValue::Float(val),
-        };
-        debug!(name = %def.name, "extracted #define constant");
-        constants.push(ConstantDef {
-            name: def.name,
-            value,
-        });
-    }
+    let structs = collect_structs(&entities, &in_scope);
+    let enums = collect_enums(&entities, &in_scope);
+    let functions = collect_functions(&entities, &in_scope);
+    let typedefs = collect_typedefs(&entities, &in_scope);
+    let constants = collect_constants(&entities, &in_scope);
 
     tracing::info!(
         namespace = %partition.namespace,
@@ -148,16 +71,177 @@ pub fn extract_partition(
 }
 
 // ---------------------------------------------------------------------------
+// Collection helpers — one per declaration kind
+// ---------------------------------------------------------------------------
+
+/// Collect structs via sonar, then run a supplemental pass for StructDecl
+/// entities that sonar missed (e.g. structs that only have a pointer typedef).
+fn collect_structs(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -> Vec<StructDef> {
+    let mut structs = Vec::new();
+    let mut seen = HashSet::new();
+
+    // Primary: sonar-discovered structs (via typedef patterns)
+    for decl in sonar::find_structs(entities.to_vec()) {
+        if !in_scope(&decl.entity) {
+            continue;
+        }
+        seen.insert(decl.name.clone());
+        match extract_struct(&decl) {
+            Ok(s) => {
+                debug!(name = %s.name, fields = s.fields.len(), size = s.size, "extracted struct");
+                structs.push(s);
+            }
+            Err(e) => warn!(name = %decl.name, err = %e, "skipping struct"),
+        }
+    }
+
+    // Supplemental: StructDecl entities with full definitions that sonar
+    // missed (e.g. `struct gzFile_s` which only has a pointer typedef).
+    for entity in entities {
+        if entity.get_kind() != EntityKind::StructDecl {
+            continue;
+        }
+        if !in_scope(entity) {
+            continue;
+        }
+        let name = match entity.get_name() {
+            Some(n) if !n.is_empty() => n,
+            _ => continue,
+        };
+        if seen.contains(&name) || !entity.is_definition() {
+            continue;
+        }
+        seen.insert(name.clone());
+        match extract_struct_from_entity(entity, &name) {
+            Ok(s) => {
+                debug!(name = %s.name, fields = s.fields.len(), size = s.size, "extracted struct (supplemental)");
+                structs.push(s);
+            }
+            Err(e) => warn!(name = %name, err = %e, "skipping struct"),
+        }
+    }
+
+    structs
+}
+
+/// Collect enums via sonar.
+fn collect_enums(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -> Vec<EnumDef> {
+    let mut enums = Vec::new();
+    for decl in sonar::find_enums(entities.to_vec()) {
+        if !in_scope(&decl.entity) {
+            continue;
+        }
+        match extract_enum(&decl) {
+            Ok(en) => {
+                debug!(name = %en.name, variants = en.variants.len(), "extracted enum");
+                enums.push(en);
+            }
+            Err(e) => warn!(name = %decl.name, err = %e, "skipping enum"),
+        }
+    }
+    enums
+}
+
+/// Collect functions via sonar.
+fn collect_functions(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -> Vec<FunctionDef> {
+    let mut functions = Vec::new();
+    for decl in sonar::find_functions(entities.to_vec()) {
+        if !in_scope(&decl.entity) {
+            continue;
+        }
+        match extract_function(&decl) {
+            Ok(f) => {
+                debug!(name = %f.name, params = f.params.len(), "extracted function");
+                functions.push(f);
+            }
+            Err(e) => warn!(name = %decl.name, err = %e, "skipping function"),
+        }
+    }
+    functions
+}
+
+/// Collect typedefs via custom discovery (not sonar, which drops typedef-to-
+/// typedef aliases like `typedef Byte Bytef`).
+fn collect_typedefs(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -> Vec<TypedefDef> {
+    let mut typedefs = Vec::new();
+    let mut seen = HashSet::new();
+    for entity in entities {
+        if entity.get_kind() != EntityKind::TypedefDecl {
+            continue;
+        }
+        if !in_scope(entity) {
+            continue;
+        }
+        let name = match entity.get_name() {
+            Some(n) if !n.is_empty() => n,
+            _ => continue,
+        };
+        if !seen.insert(name.clone()) {
+            continue;
+        }
+        let underlying = match entity.get_typedef_underlying_type() {
+            Some(ut) => ut,
+            None => continue,
+        };
+        // Skip trivial struct/enum/union pass-throughs like `typedef struct foo foo;`
+        if is_struct_passthrough(&underlying, &name) {
+            trace!(name = %name, "skipping struct/enum passthrough typedef");
+            continue;
+        }
+        match extract_typedef_from_entity(entity, &name) {
+            Ok(td) => {
+                debug!(name = %td.name, "extracted typedef");
+                typedefs.push(td);
+            }
+            Err(e) => warn!(name = %name, err = %e, "skipping typedef"),
+        }
+    }
+    typedefs
+}
+
+/// Collect `#define` constants via sonar.
+fn collect_constants(entities: &[Entity], in_scope: &impl Fn(&Entity) -> bool) -> Vec<ConstantDef> {
+    let mut constants = Vec::new();
+    for def in sonar::find_definitions(entities.to_vec()) {
+        if !in_scope(&def.entity) {
+            continue;
+        }
+        let value = match def.value {
+            DefinitionValue::Integer(negated, val) => {
+                if negated {
+                    ConstantValue::Signed(-(val as i64))
+                } else if val <= i64::MAX as u64 {
+                    ConstantValue::Signed(val as i64)
+                } else {
+                    ConstantValue::Unsigned(val)
+                }
+            }
+            DefinitionValue::Real(val) => ConstantValue::Float(val),
+        };
+        debug!(name = %def.name, "extracted #define constant");
+        constants.push(ConstantDef {
+            name: def.name,
+            value,
+        });
+    }
+    constants
+}
+
+// ---------------------------------------------------------------------------
 // Struct extraction
 // ---------------------------------------------------------------------------
 
 fn extract_struct(decl: &Declaration) -> Result<StructDef> {
-    let ty = decl.entity.get_type().context("struct has no type")?;
+    extract_struct_from_entity(&decl.entity, &decl.name)
+}
+
+fn extract_struct_from_entity(entity: &Entity, name: &str) -> Result<StructDef> {
+    let ty = entity.get_type().context("struct has no type")?;
     let size = ty.get_sizeof().unwrap_or(0);
     let align = ty.get_alignof().unwrap_or(0);
 
     let mut fields = Vec::new();
-    for child in decl.entity.get_children() {
+    for child in entity.get_children() {
         if child.get_kind() != EntityKind::FieldDecl {
             continue;
         }
@@ -187,7 +271,7 @@ fn extract_struct(decl: &Declaration) -> Result<StructDef> {
     }
 
     Ok(StructDef {
-        name: decl.name.clone(),
+        name: name.to_string(),
         size,
         align,
         fields,
@@ -271,15 +355,15 @@ fn extract_function(decl: &Declaration) -> Result<FunctionDef> {
 // Typedef extraction
 // ---------------------------------------------------------------------------
 
-fn extract_typedef(decl: &Declaration) -> Result<TypedefDef> {
-    let underlying = decl
-        .entity
+fn extract_typedef_from_entity(entity: &Entity, name: &str) -> Result<TypedefDef> {
+    let underlying = entity
         .get_typedef_underlying_type()
         .context("typedef has no underlying type")?;
     let ctype = map_clang_type(&underlying).unwrap_or(CType::Void);
+    trace!(name = %name, ty = ?ctype, "typedef underlying type");
 
     Ok(TypedefDef {
-        name: decl.name.clone(),
+        name: name.to_string(),
         underlying_type: ctype,
     })
 }
@@ -352,23 +436,22 @@ fn map_clang_type(ty: &ClangType) -> Result<CType> {
             if let Some(decl) = decl {
                 let name = decl.get_name().unwrap_or_default();
                 if !name.is_empty() {
-                    // Check for well-known C typedefs → map to primitives
-                    match name.as_str() {
-                        "int8_t" | "__int8" => return Ok(CType::I8),
-                        "uint8_t" => return Ok(CType::U8),
-                        "int16_t" | "__int16" => return Ok(CType::I16),
-                        "uint16_t" => return Ok(CType::U16),
-                        "int32_t" | "__int32" => return Ok(CType::I32),
-                        "uint32_t" => return Ok(CType::U32),
-                        "int64_t" | "__int64" => return Ok(CType::I64),
-                        "uint64_t" => return Ok(CType::U64),
-                        "size_t" | "uintptr_t" => return Ok(CType::USize),
-                        "ssize_t" | "intptr_t" | "ptrdiff_t" => return Ok(CType::ISize),
-                        _ => return Ok(CType::Named { name }),
+                    // va_list is a compiler built-in with no portable canonical type
+                    if matches!(
+                        name.as_str(),
+                        "va_list" | "__builtin_va_list" | "__gnuc_va_list"
+                    ) {
+                        return Ok(CType::Ptr {
+                            pointee: Box::new(CType::Void),
+                            is_const: false,
+                        });
                     }
+                    // User-defined typedef — keep the name so emit can resolve
+                    // it via the TypeRegistry (cross-partition TypeRef).
+                    return Ok(CType::Named { name });
                 }
             }
-            // Fallback: resolve underlying type
+            // Unnamed or unresolvable typedef — resolve to canonical primitive
             let canonical = ty.get_canonical_type();
             map_clang_type(&canonical)
         }
@@ -378,7 +461,15 @@ fn map_clang_type(ty: &ClangType) -> Result<CType> {
             if let Some(decl) = decl
                 && let Some(name) = decl.get_name()
             {
-                return Ok(CType::Named { name });
+                // Check if the type is complete (has a definition, not just forward-declared).
+                // Incomplete/opaque types (like `struct internal_state` in zlib) are
+                // mapped to Void so that pointers to them become `*mut c_void`.
+                if ty.get_sizeof().is_ok() {
+                    return Ok(CType::Named { name });
+                } else {
+                    debug!(name = %name, "incomplete record type, mapping to Void");
+                    return Ok(CType::Void);
+                }
             }
             anyhow::bail!("anonymous record type without name")
         }
@@ -441,6 +532,24 @@ fn map_calling_convention(cc: CallingConvention) -> CallConv {
         // Everything else → Cdecl (platform default)
         _ => CallConv::Cdecl,
     }
+}
+
+// ---------------------------------------------------------------------------
+// Typedef filtering helpers
+// ---------------------------------------------------------------------------
+
+/// Returns true if this typedef is a trivial struct/enum/union pass-through,
+/// i.e. `typedef struct foo foo;` or `typedef enum bar bar;`.
+/// These are handled by sonar's find_structs/find_enums and should NOT also
+/// appear as typedefs.
+fn is_struct_passthrough(underlying: &ClangType, typedef_name: &str) -> bool {
+    let display = underlying.get_display_name();
+    for prefix in &["struct ", "enum ", "union "] {
+        if display.starts_with(prefix) && &display[prefix.len()..] == typedef_name {
+            return true;
+        }
+    }
+    false
 }
 
 // ---------------------------------------------------------------------------

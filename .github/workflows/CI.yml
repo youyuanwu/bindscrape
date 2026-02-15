@@ -1,0 +1,39 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        rust: [ 1.93.0 ]
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install system dependencies
+      run: sudo apt-get update && sudo apt-get install -y libclang-dev zlib1g-dev
+
+    - name: Install rust stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt, clippy, llvm-tools
+
+    - uses: taiki-e/install-action@cargo-llvm-cov
+
+    - name: Run cargo check
+      run: cargo +${{ matrix.rust }} check
+
+    - name: Run cargo fmt
+      run: cargo +${{ matrix.rust }} fmt --all -- --check
+    
+    - name: Run cargo clippy
+      run: cargo +${{ matrix.rust }} clippy --all-targets -- -D warnings
+    
+    - name: Run cargo build
+      run: cargo +${{ matrix.rust }} build --all-targets
+
+    - name: Run cargo test
+      run: cargo +${{ matrix.rust }} test --all -- --nocapture

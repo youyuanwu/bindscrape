@@ -1,0 +1,19 @@
+[output]
+name = "Zlib"
+file = "zlib.winmd"
+
+# Partition 1: base typedefs from zconf.h
+# Byte, uInt, uLong, Bytef, voidpf, etc.
+[[partition]]
+namespace = "Zlib.Types"
+library = "z"
+headers = ["/usr/include/zconf.h"]
+traverse = ["/usr/include/zconf.h"]
+
+# Partition 2: zlib.h structs, functions, constants
+# References Zlib.Types for Bytef, uLong, etc.
+[[partition]]
+namespace = "Zlib"
+library = "z"
+headers = ["/usr/include/zlib.h"]
+traverse = ["/usr/include/zlib.h"]
