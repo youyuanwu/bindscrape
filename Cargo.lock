@@ -74,6 +74,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 
 [[package]]
+name = "bnd-posix"
+version = "0.1.0"
+dependencies = [
+ "windows-link",
+]
+
+[[package]]
+name = "bnd-posix-gen"
+version = "0.1.0"
+dependencies = [
+ "bnd-winmd",
+ "tempfile",
+ "tracing-subscriber",
+ "windows-bindgen",
+]
+
+[[package]]
 name = "bnd-winmd"
 version = "0.1.0"
 dependencies = [
@@ -85,23 +102,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "windows-metadata",
-]
-
-[[package]]
-name = "bns-posix"
-version = "0.1.0"
-dependencies = [
- "windows-link",
-]
-
-[[package]]
-name = "bns-posix-gen"
-version = "0.1.0"
-dependencies = [
- "bnd-winmd",
- "tempfile",
- "tracing-subscriber",
- "windows-bindgen",
 ]
 
 [[package]]

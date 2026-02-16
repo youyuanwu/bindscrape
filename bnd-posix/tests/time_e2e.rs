@@ -1,7 +1,7 @@
 //! End-to-end tests for time bindings against real libc.
 #![allow(clippy::unnecessary_mut_passed)]
 
-use bns_posix::posix::time;
+use bnd_posix::posix::time;
 
 #[test]
 fn clock_constants() {
@@ -31,7 +31,7 @@ fn time_returns_epoch() {
 
 #[test]
 fn clock_gettime_monotonic() {
-    use bns_posix::posix::stat; // timespec lives in stat partition
+    use bnd_posix::posix::stat; // timespec lives in stat partition
     unsafe {
         let mut ts: stat::timespec = core::mem::zeroed();
         let ret = time::clock_gettime(time::CLOCK_MONOTONIC, &mut ts);

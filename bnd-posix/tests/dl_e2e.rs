@@ -1,6 +1,6 @@
 //! End-to-end tests for dlfcn bindings against real libc.
 
-use bns_posix::posix::dl;
+use bnd_posix::posix::dl;
 
 #[test]
 fn rtld_constants() {

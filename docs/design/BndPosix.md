@@ -1,6 +1,6 @@
-# bns-posix — POSIX System Bindings via WinMD
+# bnd-posix — POSIX System Bindings via WinMD
 
-`bns-posix` provides Rust bindings for POSIX file I/O and process APIs on
+`bnd-posix` provides Rust bindings for POSIX file I/O and process APIs on
 Linux, generated from C system headers through the
 **bnd-winmd → WinMD → windows-bindgen** pipeline.
 
@@ -30,7 +30,7 @@ C-header-to-WinMD approach scales beyond test fixtures to real system APIs.
 ### Usage
 
 ```rust
-use bns_posix::posix::{fcntl, stat, unistd};
+use bnd_posix::posix::{fcntl, stat, unistd};
 
 // Create a file
 let path = c"/tmp/example.txt";
@@ -52,19 +52,19 @@ unsafe { unistd::close(fd) };
 
 ## Architecture
 
-The bindings are produced by a separate **generator crate** (`bns-posix-gen`)
-and checked into the `bns-posix` source tree — there is no `build.rs`.
+The bindings are produced by a separate **generator crate** (`bnd-posix-gen`)
+and checked into the `bnd-posix` source tree — there is no `build.rs`.
 
 ```
-  bns-posix-gen (cargo run -p bns-posix-gen)
+  bnd-posix-gen (cargo run -p bnd-posix-gen)
   ┌─────────────────────────────────────────────────────────┐
   │                                                         │
-  │  bns-posix.toml ──▶ bnd-winmd ──▶ .winmd               │
+  │  bnd-posix.toml ──▶ bnd-winmd ──▶ .winmd               │
   │                                      │                  │
   │                          windows-bindgen --package       │
   │                                      │                  │
   │                                      ▼                  │
-  │                              bns-posix/src/              │
+  │                              bnd-posix/src/              │
   │                              ├── posix/                  │
   │                              │   ├── mod.rs              │
   │                              │   ├── fcntl/mod.rs        │
@@ -77,16 +77,16 @@ and checked into the `bns-posix` source tree — there is no `build.rs`.
 To regenerate:
 
 ```sh
-cargo run -p bns-posix-gen
+cargo run -p bnd-posix-gen
 ```
 
-1. **bnd-winmd** parses `bns-posix.toml`, invokes clang on system headers,
+1. **bnd-winmd** parses `bnd-posix.toml`, invokes clang on system headers,
    extracts types/functions/constants, and writes a temporary `.winmd` file.
 2. **windows-bindgen `--package`** reads the `.winmd` and generates one
    `mod.rs` per namespace under `src/posix/`, with `#[cfg(feature)]`
    gating on each sub-module. It also appends feature definitions to
    `Cargo.toml` after the `# generated features` marker.
-3. The intermediate `.winmd` is deleted — `bns-posix` is a pure Rust crate
+3. The intermediate `.winmd` is deleted — `bnd-posix` is a pure Rust crate
    with no build-time code generation.
 
 ### Why namespace modules?
@@ -100,7 +100,7 @@ partitions use cross-partition TypeRefs (e.g. `super::types::__uid_t`).
 
 ## Partition Config
 
-The TOML config lives at `tests/fixtures/bns-posix/bns-posix.toml`
+The TOML config lives at `tests/fixtures/bnd-posix/bnd-posix.toml`
 and defines fifteen partitions:
 
 | Partition | Namespace | Headers traversed |
@@ -124,7 +124,7 @@ and defines fifteen partitions:
 ## Challenges Solved
 
 These are issues encountered while building real system bindings and fixed
-in bnd-winmd core (see [bns-posix.md](systesting/bns-posix.md) for details):
+in bnd-winmd core (see [bnd-posix.md](systesting/bnd-posix.md) for details):
 
 1. **System typedef resolution** — `CType::Named { resolved }` carries
    clang's canonical type; no hardcoded table.
@@ -163,7 +163,7 @@ in bnd-winmd core (see [bns-posix.md](systesting/bns-posix.md) for details):
 14. **Function-pointer typedefs** — `__sighandler_t` is
     `void (*)(int)`, emitted as a WinMD delegate and generated as
     `Option<unsafe extern "system" fn(i32)>`. First use of delegate
-    types in bns-posix.
+    types in bnd-posix.
 15. **Function/struct name collision** — `sigstack` is both a function
     and a struct. Adding `bits/types/struct_sigstack.h` to the traverse
     list emits both; same pattern as `stat`.
@@ -198,9 +198,9 @@ Key questions:
   (e.g. `sched.h` included by `pthread.h`) is an independent POSIX API with
   its own non-trivial surface, split it into its own partition.
 
-### 2. Add a `[[partition]]` to `bns-posix.toml`
+### 2. Add a `[[partition]]` to `bnd-posix.toml`
 
-Edit `tests/fixtures/bns-posix/bns-posix.toml` and append a new partition
+Edit `tests/fixtures/bnd-posix/bnd-posix.toml` and append a new partition
 block:
 
 ```toml
@@ -239,7 +239,7 @@ Approach:
 traverse = ["<header>.h"]
 
 # 2. Run the generator and look for warnings/panics
-cargo run -p bns-posix-gen
+cargo run -p bnd-posix-gen
 
 # 3. If windows-bindgen panics with "type not found: posix.<name>.SomeType":
 #    Find which sub-header defines SomeType:
@@ -263,18 +263,18 @@ but by convention they are appended at the end.
 ### 3. Run the generator
 
 ```sh
-cargo run -p bns-posix-gen
+cargo run -p bnd-posix-gen
 ```
 
 This produces:
-- `bns-posix/src/posix/<name>/mod.rs` — generated bindings
-- Updated `bns-posix/src/posix/mod.rs` — adds `pub mod <name>;`
-- Updated `bns-posix/Cargo.toml` — appends the feature below the
+- `bnd-posix/src/posix/<name>/mod.rs` — generated bindings
+- Updated `bnd-posix/src/posix/mod.rs` — adds `pub mod <name>;`
+- Updated `bnd-posix/Cargo.toml` — appends the feature below the
   `# generated features` marker
 
 ### 4. Add the feature to the default list
 
-Open `bns-posix/Cargo.toml` and add `"<name>"` to the `default` feature
+Open `bnd-posix/Cargo.toml` and add `"<name>"` to the `default` feature
 array (keep it sorted alphabetically):
 
 ```toml
@@ -284,7 +284,7 @@ default = ["dirent", "dl", ..., "<name>", ..., "unistd"]
 
 ### 5. Add a doc comment to `lib.rs`
 
-Add a line to the module list in `bns-posix/src/lib.rs`:
+Add a line to the module list in `bnd-posix/src/lib.rs`:
 
 ```rust
 //! - [`posix::<name>`] — <One-line description>
@@ -297,9 +297,9 @@ Keep the list sorted alphabetically.
 Review the generated `mod.rs` for correctness:
 
 ```sh
-wc -l bns-posix/src/posix/<name>/mod.rs
-grep "pub unsafe fn" bns-posix/src/posix/<name>/mod.rs | wc -l
-grep "pub const" bns-posix/src/posix/<name>/mod.rs | wc -l
+wc -l bnd-posix/src/posix/<name>/mod.rs
+grep "pub unsafe fn" bnd-posix/src/posix/<name>/mod.rs | wc -l
+grep "pub const" bnd-posix/src/posix/<name>/mod.rs | wc -l
 ```
 
 Things to check:
@@ -320,10 +320,10 @@ Things to check:
 
 ### 7. Write E2E tests
 
-Create `bns-posix/tests/<name>_e2e.rs`:
+Create `bnd-posix/tests/<name>_e2e.rs`:
 
 ```rust
-use bns_posix::posix::{<name>};
+use bnd_posix::posix::{<name>};
 
 #[test]
 fn <name>_constants() {
@@ -359,7 +359,7 @@ Guidelines:
 Run:
 
 ```sh
-cargo test -p bns-posix
+cargo test -p bnd-posix
 cargo clippy --all-targets
 ```
 
@@ -371,7 +371,7 @@ Three docs need updating:
    table, and Tests table.
 2. **`docs/WIP.md`** — mark the partition as done in the candidate table and
    add a completed-section entry.
-3. **`docs/design/systesting/bns-posix.md`** — add a status row and a detailed
+3. **`docs/design/systesting/bnd-posix.md`** — add a status row and a detailed
    section covering partition config, API surface, design decisions, and test
    table.
 

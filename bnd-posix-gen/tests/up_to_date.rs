@@ -25,9 +25,9 @@ fn collect_files_recursive(base: &Path, dir: &Path, out: &mut Vec<PathBuf>) {
 #[test]
 fn generated_sources_are_up_to_date() {
     let workspace_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-    let checked_in = workspace_dir.join("bns-posix/src/posix");
+    let checked_in = workspace_dir.join("bnd-posix/src/posix");
 
-    // Generate into a temp directory structured like bns-posix
+    // Generate into a temp directory structured like bnd-posix
     let tmp = tempfile::tempdir().unwrap();
     let tmp_src = tmp.path().join("src/posix");
     std::fs::create_dir_all(&tmp_src).unwrap();
@@ -36,7 +36,7 @@ fn generated_sources_are_up_to_date() {
     let stub_toml = "[package]\nname = \"tmp\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n[dependencies]\nwindows-link = \"0.2\"\n\n[features]\nFoundation = []\n# generated features\n";
     std::fs::write(tmp.path().join("Cargo.toml"), stub_toml).unwrap();
 
-    bns_posix_gen::generate(tmp.path());
+    bnd_posix_gen::generate(tmp.path());
 
     let generated_dir = tmp.path().join("src/posix");
 
@@ -61,7 +61,7 @@ fn generated_sources_are_up_to_date() {
 
     assert!(
         diffs.is_empty(),
-        "The following checked-in files are out of date. Run `cargo run -p bns-posix-gen` \
+        "The following checked-in files are out of date. Run `cargo run -p bnd-posix-gen` \
          to regenerate:\n  {}",
         diffs.join("\n  ")
     );

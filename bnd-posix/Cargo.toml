@@ -1,5 +1,5 @@
 [package]
-name = "bns-posix"
+name = "bnd-posix"
 version = "0.1.0"
 edition.workspace = true
 description = "POSIX system bindings generated as WinMD metadata"

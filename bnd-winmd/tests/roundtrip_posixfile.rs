@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 
 static POSIXFILE_WINMD: LazyLock<Vec<u8>> = LazyLock::new(|| {
     let path =
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/bns-posix/bns-posix.toml");
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/bnd-posix/bnd-posix.toml");
     bnd_winmd::generate(&path).expect("generate posixfile winmd")
 });
 

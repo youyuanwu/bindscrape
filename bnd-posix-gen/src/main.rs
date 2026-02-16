@@ -1,10 +1,10 @@
-//! Generator that produces the `bns-posix` crate from POSIX system headers.
+//! Generator that produces the `bnd-posix` crate from POSIX system headers.
 //!
 //! This crate drives the **bnd-winmd → WinMD → windows-bindgen (package mode)**
-//! pipeline. Run it to regenerate the `bns-posix` crate:
+//! pipeline. Run it to regenerate the `bnd-posix` crate:
 //!
 //! ```sh
-//! cargo run -p bns-posix-gen
+//! cargo run -p bnd-posix-gen
 //! ```
 
 use std::path::PathBuf;
@@ -15,9 +15,9 @@ fn main() {
         .init();
 
     let workspace_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-    let bns_posix_dir = workspace_dir.join("bns-posix");
+    let bnd_posix_dir = workspace_dir.join("bnd-posix");
 
-    bns_posix_gen::generate(&bns_posix_dir);
+    bnd_posix_gen::generate(&bnd_posix_dir);
 
-    println!("Generated bns-posix crate at {}", bns_posix_dir.display());
+    println!("Generated bnd-posix crate at {}", bnd_posix_dir.display());
 }

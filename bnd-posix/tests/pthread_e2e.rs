@@ -1,7 +1,7 @@
 //! End-to-end tests for pthread bindings against real libc.
 #![allow(clippy::unnecessary_mut_passed)]
 
-use bns_posix::posix::pthread;
+use bnd_posix::posix::pthread;
 
 #[test]
 fn pthread_constants() {

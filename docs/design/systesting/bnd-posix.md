@@ -1,6 +1,6 @@
-# bns-posix: System Header Testing
+# bnd-posix: System Header Testing
 
-Design notes for the POSIX API families tested through the `bns-posix` crate.
+Design notes for the POSIX API families tested through the `bnd-posix` crate.
 Each section documents partition layout, expected challenges, API surface,
 and E2E test plans for one header group.
 
@@ -115,7 +115,7 @@ include_paths = [
 
 [output]
 name = "posix"
-file = "bns-posix.winmd"
+file = "bnd-posix.winmd"
 
 # Partition 1: fcntl — creat + O_* flags
 # open/openat/fcntl are variadic and will be auto-skipped
@@ -366,15 +366,15 @@ Test against real filesystem operations using temp files.
 3. ✅ C `long` → `I64` for Linux LP64 ABI
 4. ✅ Array parameter decay → pointer in `extract_function()`
 5. ✅ Function deduplication via `HashSet` in `collect_functions()`
-6. ✅ Created `tests/fixtures/bns-posix/bns-posix.toml`
+6. ✅ Created `tests/fixtures/bnd-posix/bnd-posix.toml`
    (5 partitions: Dirent, Fcntl, Mmap, Stat, Unistd)
 7. ✅ Added roundtrip tests in `roundtrip_posixfile.rs`
-8. ✅ Created `bns-posix/` crate with feature-gated namespace modules
-   (package mode via `bns-posix-gen`, no `build.rs`)
+8. ✅ Created `bnd-posix/` crate with feature-gated namespace modules
+   (package mode via `bnd-posix-gen`, no `build.rs`)
 9. ✅ Added `struct_timespec.h` to Stat traverse list
 10. ✅ Created E2E tests (`posixfile_e2e.rs`) — all passing
-11. ✅ Added `bns-posix` and `bns-posix-gen` to workspace members
-12. ✅ Separated generator into `bns-posix-gen` crate using
+11. ✅ Added `bnd-posix` and `bnd-posix-gen` to workspace members
+12. ✅ Separated generator into `bnd-posix-gen` crate using
    `windows-bindgen --package` mode
 
 ---
@@ -769,13 +769,13 @@ Suggested sequence:
 2. ✅ Implement anonymous nested type synthetic naming
 3. ✅ System typedefs (`socklen_t`, `sa_family_t`, `in_port_t`,
    `in_addr_t`) auto-resolved via `CType::Named { resolved }` — no changes needed
-4. ✅ Added 3 partitions (Socket, Inet, Netdb) to `bns-posix.toml` under
+4. ✅ Added 3 partitions (Socket, Inet, Netdb) to `bnd-posix.toml` under
    `posix` namespace (not separate assembly as originally
    planned — simpler to keep in one assembly)
 5. ✅ Iteratively discovered traverse paths: `bits/socket.h`,
    `bits/socket_type.h`, `bits/socket-constants.h`,
    `bits/types/struct_iovec.h`, `bits/netdb.h`
-6. ✅ Added Socket, Inet, Netdb features to `bns-posix/Cargo.toml`
+6. ✅ Added Socket, Inet, Netdb features to `bnd-posix/Cargo.toml`
 7. ✅ `htons`/`htonl` are real weak symbols in glibc — P/Invoke works
 8. ✅ No conditional compilation flags needed — default clang parse picks up
    all required APIs
@@ -792,10 +792,10 @@ Suggested sequence:
 - **Union-in-struct**: `struct sigaction` contains a union
   `__sigaction_handler` with `sa_handler` (function pointer) vs
   `sa_sigaction` (3-arg handler pointer) — first real use of unions
-  inside structs in bns-posix
+  inside structs in bnd-posix
 - **Function-pointer typedef**: `__sighandler_t` = `void (*)(int)` —
   emitted as a WinMD delegate, generated as
-  `Option<unsafe extern "system" fn(i32)>`. First delegate type in bns-posix.
+  `Option<unsafe extern "system" fn(i32)>`. First delegate type in bnd-posix.
 - **Deeply nested anonymous types**: `siginfo_t` contains
   `_sifields` union with 7 variants, some containing further nested
   structs and unions (e.g. `_sigfault._bounds._addr_bnd`)
@@ -888,11 +888,11 @@ anonymous types), `__sigset_t`, `sigcontext`, `sigval`, `__sigval_t`,
 
 ### Implementation Steps
 
-1. ✅ Added partition 9 to `bns-posix.toml` with `posix.signal` namespace
+1. ✅ Added partition 9 to `bnd-posix.toml` with `posix.signal` namespace
 2. ✅ Iteratively discovered 10 traverse paths through `bits/` and `bits/types/`
 3. ✅ Generation succeeded — 30 functions, 23 structs, ~50 constants, 4 types
 4. ✅ Compilation clean — all struct layouts match libc
-5. ✅ Added `signal` feature to `bns-posix/Cargo.toml` default list
+5. ✅ Added `signal` feature to `bnd-posix/Cargo.toml` default list
 6. ✅ Cross-partition ref: `sigtimedwait` → `stat::timespec` (auto `#[cfg]`)
 7. ✅ E2E tests covering constants, struct layouts, sigset ops, signal
    delivery, sigaction, sigprocmask, and kill
@@ -958,13 +958,13 @@ existing E2E tests in other partitions that consume these types.
 
 ### Implementation Steps
 
-1. ✅ Added partition 1 (types) to `bns-posix.toml` with `posix.types` namespace
+1. ✅ Added partition 1 (types) to `bnd-posix.toml` with `posix.types` namespace
 2. ✅ Added `sys/types.h` header and `bits/types.h` traverse path
 3. ✅ Implemented first-writer-wins typedef dedup in `build_type_registry`
 4. ✅ Added dedup retain pass in `generate_from_config`
 5. ✅ Generation succeeded — 95 typedefs, 1 struct, 0 functions, 3 constants
 6. ✅ Compilation clean — all cross-partition `#[cfg]` gates resolve
-7. ✅ Added `types` feature to `bns-posix/Cargo.toml` default list
+7. ✅ Added `types` feature to `bnd-posix/Cargo.toml` default list
 8. ✅ All existing tests pass (no E2E changes needed)
 
 ---

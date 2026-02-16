@@ -1,8 +1,8 @@
 [package]
-name = "bns-posix-gen"
+name = "bnd-posix-gen"
 version = "0.1.0"
 edition.workspace = true
-description = "Generator that produces the bns-posix crate from POSIX system headers"
+description = "Generator that produces the bnd-posix crate from POSIX system headers"
 authors.workspace = true
 repository.workspace = true
 license.workspace = true

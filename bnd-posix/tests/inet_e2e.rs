@@ -1,7 +1,7 @@
 //! End-to-end tests for Inet bindings against real libc.
 
-use bns_posix::posix::inet;
-use bns_posix::posix::socket;
+use bnd_posix::posix::inet;
+use bnd_posix::posix::socket;
 
 // ---------------------------------------------------------------------------
 // Constants

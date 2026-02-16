@@ -1,8 +1,8 @@
 //! End-to-end tests for Socket bindings against real libc.
 
-use bns_posix::posix::inet;
-use bns_posix::posix::socket;
-use bns_posix::posix::unistd;
+use bnd_posix::posix::inet;
+use bnd_posix::posix::socket;
+use bnd_posix::posix::unistd;
 
 // ---------------------------------------------------------------------------
 // Constants

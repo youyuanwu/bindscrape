@@ -1,8 +1,8 @@
 //! End-to-end tests for Fcntl + Unistd file I/O bindings against real libc.
 
-use bns_posix::posix::fcntl;
-use bns_posix::posix::stat;
-use bns_posix::posix::unistd;
+use bnd_posix::posix::fcntl;
+use bnd_posix::posix::stat;
+use bnd_posix::posix::unistd;
 
 use std::ffi::CString;
 

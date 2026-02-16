@@ -1,6 +1,6 @@
 //! End-to-end tests for errno bindings against real libc.
 
-use bns_posix::posix::errno;
+use bnd_posix::posix::errno;
 
 #[test]
 fn basic_errno_constants() {
@@ -66,7 +66,7 @@ fn errno_reflects_failed_syscall() {
 
         // Use libc open via our unistd bindings to trigger ENOENT
         let path = c"/nonexistent/path/that/does/not/exist";
-        let fd = bns_posix::posix::unistd::access(path.as_ptr(), 0);
+        let fd = bnd_posix::posix::unistd::access(path.as_ptr(), 0);
         assert_eq!(fd, -1, "access() should fail for nonexistent path");
 
         let err = *errno::__errno_location();

@@ -2,7 +2,7 @@ include_paths = ["/usr/include/x86_64-linux-gnu", "/usr/include"]
 
 [output]
 name = "posix"
-file = "bns-posix.winmd"
+file = "bnd-posix.winmd"
 
 # Partition 1: shared POSIX types — uid_t, pid_t, mode_t, off_t, gid_t, etc.
 # Must come first so the type registry claims these names (first-writer-wins)

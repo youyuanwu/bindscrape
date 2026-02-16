@@ -41,7 +41,7 @@ decay workaround remain relevant for function parameters only.
 
 ---
 
-## Planned — bns-posix API Families
+## Planned — bnd-posix API Families
 
 ### ~~4. Socket partitions~~ ✅
 

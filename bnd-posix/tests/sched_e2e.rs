@@ -1,6 +1,6 @@
 //! End-to-end tests for sched bindings against real libc.
 
-use bns_posix::posix::sched;
+use bnd_posix::posix::sched;
 
 #[test]
 fn sched_constants() {

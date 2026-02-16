@@ -1,7 +1,7 @@
 //! End-to-end tests for Netdb bindings against real libc.
 
-use bns_posix::posix::netdb;
-use bns_posix::posix::socket;
+use bnd_posix::posix::netdb;
+use bnd_posix::posix::socket;
 
 // ---------------------------------------------------------------------------
 // Constants

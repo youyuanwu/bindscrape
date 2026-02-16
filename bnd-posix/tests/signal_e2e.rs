@@ -1,6 +1,6 @@
 //! End-to-end tests for Signal bindings against real libc.
 
-use bns_posix::posix::{pthread, signal};
+use bnd_posix::posix::{pthread, signal};
 
 // ---------------------------------------------------------------------------
 // Constants

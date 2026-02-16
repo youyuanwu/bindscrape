@@ -76,7 +76,7 @@ C/C++ Headers
 | Warn-and-skip error handling | Non-fatal failures log `tracing::warn!` and skip the declaration |
 | Round-trip integration tests | Across 4 files |
 | E2E integration tests | Across 4 crates (zlib against real `libz.so`, POSIX file I/O, mmap, dirent, sockets, inet, netdb, signal) |
-| Package-mode code generation | `bns-posix-gen` drives bnd-winmd + `windows-bindgen --package` to generate the `bns-posix` source tree with feature-gated sub-modules |
+| Package-mode code generation | `bnd-posix-gen` drives bnd-winmd + `windows-bindgen --package` to generate the `bnd-posix` source tree with feature-gated sub-modules |
 
 ### What Is NOT Yet Implemented
 
@@ -105,21 +105,21 @@ bnd-winmd/
 └── tests/
     ├── roundtrip_simple.rs   # simple.h fixture (297 LOC)
     ├── roundtrip_multi.rs    # multi-partition fixture (141 LOC)
-    ├── roundtrip_posixfile.rs # bns-posix fixture (245 LOC)
+    ├── roundtrip_posixfile.rs # bnd-posix fixture (245 LOC)
     └── roundtrip_zlib.rs     # zlib system header (200 LOC)
 
 tests/
 ├── fixtures/
 │   ├── simple.h / simple.toml
 │   ├── multi/ (graphics.h, audio.h, multi.toml)
-│   ├── bns-posix/ (bns-posix.toml — POSIX headers)
+│   ├── bnd-posix/ (bnd-posix.toml — POSIX headers)
 │   └── zlib/ (zlib.toml — references system headers)
 ├── simple-impl/              # Native C lib for e2e-simple
 ├── e2e-simple/               # E2E tests (single partition + unions)
 ├── e2e-multi/                # E2E tests (multi-partition)
 └── e2e-zlib/                 # E2E tests (system header, real libz.so)
 
-bns-posix/
+bnd-posix/
 ├── Cargo.toml                # Feature-gated sub-modules
 ├── src/
 │   ├── lib.rs                # Hand-written module root
@@ -146,7 +146,7 @@ bns-posix/
     └── signal_e2e.rs         # 14 Signal E2E tests
 ```
 
-**Total**: ~1,709 LOC (library) + ~883 LOC (roundtrip tests) + ~834 LOC (E2E crates) + 717 LOC (bns-posix E2E)
+**Total**: ~1,709 LOC (library) + ~883 LOC (roundtrip tests) + ~834 LOC (E2E crates) + 717 LOC (bnd-posix E2E)
 
 ---
 
@@ -228,7 +228,7 @@ constants, delegate, pinvoke.
 **roundtrip_multi.rs** (multi-partition): namespace placement,
 functions, cross-partition typeref, constants, enums.
 
-**roundtrip_posixfile.rs** (bns-posix): fcntl/stat/unistd functions,
+**roundtrip_posixfile.rs** (bnd-posix): fcntl/stat/unistd functions,
 struct fields, struct sizes, constants, pinvoke.
 
 **roundtrip_zlib.rs** (system headers): zlib structs, delegates,
@@ -243,7 +243,7 @@ Generated FFI bindings linked against real native libraries.
 | `e2e-simple` | Single partition, simple.h, widgets + unions + anonymous nested types |
 | `e2e-multi` | Multi-partition, cross-namespace type references |
 | `e2e-zlib` | System header, real libz.so, compress/uncompress roundtrip |
-| `bns-posix` | Real libc: file I/O, mmap, dirent, stat, sockets, inet, netdb, signal |
+| `bnd-posix` | Real libc: file I/O, mmap, dirent, stat, sockets, inet, netdb, signal |
 
 ### Doc Tests + Freshness Test
 
@@ -321,7 +321,7 @@ All of the above are implemented and verified by tests.
 | Emission (model → winmd) | 419 | `emit.rs` |
 | Roundtrip tests | 883 | 4 files |
 | E2E test crates | ~834 | 3 crates |
-| bns-posix E2E tests | 933 | 1 file |
+| bnd-posix E2E tests | 933 | 1 file |
 | **Total (library)** | **1,709** | |
 | **Total (library + tests)** | **~4,359** | |
 

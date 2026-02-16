@@ -1,6 +1,6 @@
 //! End-to-end tests for Mmap bindings against real libc.
 
-use bns_posix::posix::mmap;
+use bnd_posix::posix::mmap;
 
 #[test]
 fn prot_constants() {
