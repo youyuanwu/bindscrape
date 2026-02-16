@@ -1,0 +1,72 @@
+include_paths = ["/usr/include/x86_64-linux-gnu", "/usr/include"]
+
+[output]
+name = "openssl"
+file = "openssl.winmd"
+
+# Partition 1: Opaque type forward declarations
+# 120 typedef struct foo_st FOO patterns — no functions
+[[partition]]
+namespace = "openssl.types"
+library = "crypto"
+headers = ["openssl/types.h"]
+traverse = ["openssl/types.h"]
+
+# Partition 2: Library version + core utilities
+[[partition]]
+namespace = "openssl.crypto"
+library = "crypto"
+headers = ["openssl/crypto.h"]
+traverse = ["openssl/crypto.h", "bits/types/struct_tm.h", "bits/types/struct_FILE.h"]
+
+# Partition 3: Random number generation
+[[partition]]
+namespace = "openssl.rand"
+library = "crypto"
+headers = ["openssl/rand.h"]
+traverse = ["openssl/rand.h"]
+
+# Partition 4: Error queue
+# NOTE: openssl/err.h uses DEFINE_LHASH_OF_INTERNAL which generates
+# a struct with an inline union field (lh_ERR_STRING_DATA_dummy) that
+# bnd-winmd extracts but cannot emit correctly. Skipped for now.
+# [[partition]]
+# namespace = "openssl.err"
+# library = "crypto"
+# headers = ["openssl/err.h"]
+# traverse = ["openssl/err.h"]
+
+# Partition 5: Big number arithmetic (opaque BIGNUM)
+[[partition]]
+namespace = "openssl.bn"
+library = "crypto"
+headers = ["openssl/bn.h"]
+traverse = ["openssl/bn.h"]
+
+# Partition 6: EVP high-level crypto (digest, cipher)
+[[partition]]
+namespace = "openssl.evp"
+library = "crypto"
+headers = ["openssl/evp.h"]
+traverse = ["openssl/evp.h"]
+
+# Partition 7: SHA one-shot hash + context structs
+[[partition]]
+namespace = "openssl.sha"
+library = "crypto"
+headers = ["openssl/sha.h"]
+traverse = ["openssl/sha.h"]
+
+# Partition 8: BIO I/O abstraction
+[[partition]]
+namespace = "openssl.bio"
+library = "crypto"
+headers = ["openssl/bio.h"]
+traverse = ["openssl/bio.h"]
+
+# Partition 9: TLS protocol — links libssl
+[[partition]]
+namespace = "openssl.ssl"
+library = "ssl"
+headers = ["openssl/ssl.h"]
+traverse = ["openssl/ssl.h", "openssl/tls1.h"]

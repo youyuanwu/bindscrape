@@ -1,0 +1,16 @@
+[package]
+name = "bnd-openssl-gen"
+version = "0.1.0"
+edition.workspace = true
+description = "Generator that produces the bnd-openssl crate from OpenSSL system headers"
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+bnd-winmd.workspace = true
+tracing-subscriber.workspace = true
+windows-bindgen.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

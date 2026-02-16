@@ -1,0 +1,24 @@
+[package]
+name = "bnd-openssl"
+version = "0.1.0"
+edition.workspace = true
+description = "Rust FFI bindings for OpenSSL (libssl + libcrypto)"
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+windows-link.workspace = true
+
+[features]
+default = ["bio", "bn", "crypto", "evp", "rand", "sha", "ssl", "types"]
+Foundation = []
+# generated features
+bio = ["Foundation"]
+bn = ["Foundation"]
+crypto = ["Foundation"]
+evp = ["Foundation"]
+rand = ["Foundation"]
+sha = ["Foundation"]
+ssl = ["Foundation"]
+types = ["Foundation"]

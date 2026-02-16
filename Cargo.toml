@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["bnd-winmd", "bnd-posix", "bnd-posix-gen", "tests/simple-impl", "tests/e2e-simple", "tests/e2e-multi", "tests/e2e-zlib"]
+members = ["bnd-winmd", "bnd-posix", "bnd-posix-gen", "bnd-openssl", "bnd-openssl-gen", "tests/simple-impl", "tests/e2e-simple", "tests/e2e-multi", "tests/e2e-zlib"]
 
 package.edition = "2024"
 package.authors = [ "youyuanwu@outlook.com" ]
