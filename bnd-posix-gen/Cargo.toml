@@ -6,6 +6,7 @@ description = "Generator that produces the bnd-posix crate from POSIX system hea
 authors.workspace = true
 repository.workspace = true
 license.workspace = true
+publish = false
 
 [dependencies]
 bnd-winmd.workspace = true

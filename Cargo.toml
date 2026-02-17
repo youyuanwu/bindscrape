@@ -4,13 +4,12 @@ members = ["bnd-winmd", "bnd-posix", "bnd-posix-gen", "bnd-openssl", "bnd-openss
 
 package.edition = "2024"
 package.authors = [ "youyuanwu@outlook.com" ]
-package.documentation = "https://github.com/youyuanwu/bindscrape"
-package.repository = "https://github.com/youyuanwu/bindscrape"
+package.documentation = "https://github.com/youyuanwu/bnd"
+package.repository = "https://github.com/youyuanwu/bnd"
 package.license = "MIT"
 
 [workspace.dependencies]
 anyhow = "1"
-bnd-winmd = { path = "bnd-winmd" }
 clang = { version = "2", features = ["clang_10_0"] }
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
@@ -22,3 +21,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 windows-bindgen = "0.66"
 windows-link = "0.2"
 windows-metadata = "0.59"
+
+# Crate in this repo.
+bnd-winmd = { path = "bnd-winmd" , version = "0.0.1" }

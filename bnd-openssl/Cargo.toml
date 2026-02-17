@@ -1,11 +1,12 @@
 [package]
 name = "bnd-openssl"
-version = "0.1.0"
+version = "0.0.1"
 edition.workspace = true
 description = "Rust FFI bindings for OpenSSL (libssl + libcrypto)"
 authors.workspace = true
 repository.workspace = true
 license.workspace = true
+readme = "README.md"
 
 [dependencies]
 windows-link.workspace = true

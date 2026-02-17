@@ -1,11 +1,12 @@
 [package]
 name = "bnd-posix"
-version = "0.1.0"
+version = "0.0.1"
 edition.workspace = true
 description = "POSIX system bindings generated as WinMD metadata"
 authors.workspace = true
 repository.workspace = true
 license.workspace = true
+readme = "README.md"
 
 [dependencies]
 windows-link.workspace = true

@@ -75,7 +75,7 @@ checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 
 [[package]]
 name = "bnd-openssl"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "windows-link",
 ]
@@ -92,7 +92,7 @@ dependencies = [
 
 [[package]]
 name = "bnd-posix"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "windows-link",
 ]
@@ -109,7 +109,7 @@ dependencies = [
 
 [[package]]
 name = "bnd-winmd"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "clang",

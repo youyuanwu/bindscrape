@@ -1,11 +1,13 @@
 [package]
 name = "bnd-winmd"
-version = "0.1.0"
+version = "0.0.1"
 edition.workspace = true
+description = "Generate winmd from c headers"
 authors.workspace = true
 documentation.workspace = true
 repository.workspace = true
 license.workspace = true
+readme = "README.md"
 
 [lib]
 name = "bnd_winmd"

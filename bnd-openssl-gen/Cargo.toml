@@ -6,6 +6,7 @@ description = "Generator that produces the bnd-openssl crate from OpenSSL system
 authors.workspace = true
 repository.workspace = true
 license.workspace = true
+publish = false
 
 [dependencies]
 bnd-winmd.workspace = true
