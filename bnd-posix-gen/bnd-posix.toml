@@ -167,3 +167,20 @@ traverse = [
     "bits/pthread_stack_min-dynamic.h",
     "bits/pthread_stack_min.h",
 ]
+
+# Partition 16: stdio — fopen/fclose/fread/fwrite/fseek/ftell/fileno/popen + constants
+# printf/scanf families are variadic and will be auto-skipped.
+# FILE (struct _IO_FILE) is opaque — not traversing bits/types/struct_FILE.h.
+# fpos_t requires __mbstate_t traversal.
+[[partition]]
+namespace = "posix.stdio"
+library = "c"
+headers = ["stdio.h"]
+traverse = [
+    "stdio.h",
+    "bits/stdio_lim.h",
+    "bits/types/__fpos_t.h",
+    "bits/types/__mbstate_t.h",
+    "bits/types/struct_FILE.h",
+    "bits/types/cookie_io_functions_t.h",
+]

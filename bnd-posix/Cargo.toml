@@ -12,7 +12,7 @@ readme = "README.md"
 windows-link.workspace = true
 
 [features]
-default = ["dirent", "dl", "errno", "fcntl", "inet", "mmap", "netdb", "pthread", "sched", "signal", "socket", "stat", "time", "types", "unistd"]
+default = ["dirent", "dl", "errno", "fcntl", "inet", "mmap", "netdb", "pthread", "sched", "signal", "socket", "stat", "stdio", "time", "types", "unistd"]
 Foundation = []
 # generated features
 dirent = ["Foundation"]
@@ -27,6 +27,7 @@ sched = ["Foundation"]
 signal = ["Foundation"]
 socket = ["Foundation"]
 stat = ["Foundation"]
+stdio = ["Foundation"]
 time = ["Foundation"]
 types = ["Foundation"]
 unistd = ["Foundation"]

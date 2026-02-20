@@ -412,7 +412,7 @@ trailing `U`/`L`/`UL`/`ULL` suffixes.
 `MAP_SHARED`, `MAP_PRIVATE`, `MAP_ANONYMOUS`, `MAP_FIXED`,
 `MS_ASYNC`, `MS_SYNC`, `MS_INVALIDATE`, `MADV_*`, etc.
 
-### E2E Tests (5)
+### E2E Tests
 
 | Test | What it does |
 |---|---|
@@ -471,7 +471,7 @@ traverse = ["dirent.h", "bits/dirent.h"]
 `DT_DIR=4`, `DT_BLK=6`, `DT_REG=8`, `DT_LNK=10`, `DT_SOCK=12`,
 `DT_WHT=14`
 
-### E2E Tests (5)
+### E2E Tests
 
 | Test | What it does |
 |---|---|
@@ -1164,3 +1164,134 @@ traverse = [
 | `pthread_attr_init_destroy` | Attr init, default detach state is JOINABLE |
 | `spinlock_lock_unlock` | Spinlock init/lock/unlock/destroy |
 | `struct_sizes` | mutex_t=40, cond_t=48, rwlock_t=56, attr_t=56, barrier_t=32 |
+
+---
+
+## Stdio
+
+`stdio.h` — standard buffered I/O. The most widely used C header, providing
+file stream operations (`fopen`/`fclose`/`fread`/`fwrite`), character I/O
+(`fgetc`/`fputc`/`fgets`/`fputs`), positioning (`fseek`/`ftell`/`fgetpos`),
+and POSIX extensions (`fdopen`, `fileno`, `popen`/`pclose`, `getline`).
+
+### Partition Config
+
+```toml
+[[partition]]
+namespace = "posix.stdio"
+library = "c"
+headers = ["stdio.h"]
+traverse = [
+    "stdio.h",
+    "bits/stdio_lim.h",
+    "bits/types/__fpos_t.h",
+    "bits/types/__mbstate_t.h",
+    "bits/types/struct_FILE.h",
+    "bits/types/cookie_io_functions_t.h",
+]
+```
+
+### Design Decisions
+
+1. **`_IO_FILE` struct traversal** — `struct _IO_FILE` is defined in
+   `bits/types/struct_FILE.h` with ~30 internal fields. Several fields
+   reference glibc-private incomplete types (`_IO_marker`, `_IO_codecvt`,
+   `_IO_wide_data`) which map to `*mut c_void` via the incomplete-record
+   fallback. `_IO_lock_t` is forward-declared but gets an opaque `isize`
+   typedef. Traversing `struct_FILE.h` is required because windows-bindgen
+   panics with "type not found" when functions reference a type that has
+   no definition in the winmd. The emitted struct has the correct 216-byte
+   layout, validated by the `io_file_struct_size` E2E test.
+
+2. **Variadic functions skipped** — `printf`, `scanf`, `dprintf`,
+   `fprintf`, `sprintf`, `snprintf`, `fscanf`, `sscanf` and variants
+   are variadic (auto-skipped). The usable I/O surface is the
+   non-variadic functions: `fread`, `fwrite`, `fgets`, `fputs`, `fgetc`,
+   `fputc`, `puts`, `getline`, etc. The `v*` variants (`vfprintf`,
+   `vsnprintf`, `vscanf`, etc.) take `va_list` which maps to
+   `*mut c_void` — present in bindings but not directly callable
+   from safe Rust.
+
+3. **`__va_list_tag` compiler built-in** — on x86-64, `va_list` is
+   `typedef __builtin_va_list`, whose canonical type is
+   `__va_list_tag[1]`. The record type `__va_list_tag` has no header
+   file location and leaks through when clang resolves `va_list`
+   parameters on the `v*printf`/`v*scanf` functions. Fix: map
+   `__va_list_tag` to `CType::Void` in extract.rs so these functions
+   get `*mut c_void` parameters.
+
+4. **`fpos_t` struct** — `fpos_t` is `typedef struct _G_fpos_t { __off_t
+   __pos; __mbstate_t __state; }`. Requires traversing
+   `bits/types/__fpos_t.h` and `bits/types/__mbstate_t.h` for
+   `fgetpos`/`fsetpos`.
+
+5. **glibc `__REDIRECT` duplicates** — glibc uses `__REDIRECT` macros for
+   LFS (Large File Support) compatibility. Functions like `fseeko`,
+   `ftello`, `fgetpos`, `fsetpos` have both 32-bit and 64-bit variants.
+   The existing function dedup pass handles this.
+
+6. **`cookie_io_functions_t`** — glibc extension struct with function
+   pointer fields (read/write/seek/close callbacks). Used only by
+   `fopencookie` (GNU extension, not POSIX). Requires traversing
+   `bits/types/cookie_io_functions_t.h`. Callback fields are emitted as
+   delegate typedefs (`cookie_read_function_t`, etc.).
+
+7. **`stdin`/`stdout`/`stderr`** — these are `extern FILE*` global
+   variables, not functions. bnd-winmd currently only extracts functions,
+   constants, and types — not global variables. These will be missing
+   from the bindings.
+
+### API Surface
+
+**Non-variadic functions (~60)**: `fopen`, `fclose`, `fflush`, `freopen`,
+`fdopen`, `fmemopen`, `open_memstream`, `fopencookie`,
+`setbuf`, `setvbuf`, `setbuffer`, `setlinebuf`,
+`fgetc`, `fputc`, `getc`, `putc`, `getchar`, `putchar`, `ungetc`,
+`fgets`, `fputs`, `puts`, `gets`, `getline`, `getdelim`,
+`fread`, `fwrite`, `fread_unlocked`, `fwrite_unlocked`,
+`fseek`, `ftell`, `rewind`, `fseeko`, `ftello`,
+`fgetpos`, `fsetpos`, `fgetpos64`, `fsetpos64`,
+`clearerr`, `feof`, `ferror`, `fileno`, `perror`,
+`popen`, `pclose`, `tmpfile`, `tmpnam`, `tmpnam_r`, `tempnam`,
+`flockfile`, `ftrylockfile`, `funlockfile`,
+`fcloseall`,
+`vfprintf`, `vprintf`, `vsprintf`, `vsnprintf`, `vasprintf`,
+`vfscanf`, `vscanf`, `vsscanf`, `vdprintf`
+(+`_unlocked` variants)
+
+**Variadic (auto-skipped)**: `printf`, `fprintf`, `sprintf`, `snprintf`,
+`dprintf`, `scanf`, `fscanf`, `sscanf`, `asprintf`
+
+**Constants (21)**: `BUFSIZ=8192`, `SEEK_SET=0`, `SEEK_CUR=1`,
+`SEEK_END=2`, `L_tmpnam=20`, `L_ctermid=9`, `TMP_MAX=238328`,
+`FOPEN_MAX=16`, `FILENAME_MAX=4096`, `_IOFBF=0`, `_IOLBF=1`, `_IONBF=2`,
+`_IO_EOF_SEEN=16`, `_IO_ERR_SEEN=32`, `_IO_USER_LOCK=32768`,
+`_STDIO_H`, `_BITS_STDIO_LIM_H`, `_____fpos_t_defined`,
+`____mbstate_t_defined`, `__cookie_io_functions_t_defined`,
+`__struct_FILE_defined`
+
+**Structs (8)**: `_IO_FILE` (216 bytes, 30 fields), `_G_fpos_t`,
+`fpos_t`, `__fpos_t`, `__mbstate_t` (with `__mbstate_t___value` union),
+`_IO_cookie_io_functions_t`, `cookie_io_functions_t`
+
+**Typedefs (6)**: `_IO_lock_t` (opaque `isize`), `va_list`
+(`*mut c_void`), `cookie_read_function_t`, `cookie_write_function_t`,
+`cookie_seek_function_t`, `cookie_close_function_t`
+
+### E2E Tests (`stdio_e2e.rs`)
+
+| Test | What it validates |
+|---|---|
+| `stdio_constants` | BUFSIZ, EOF, SEEK_SET/CUR/END, L_tmpnam, TMP_MAX, FOPEN_MAX, FILENAME_MAX |
+| `fopen_fclose` | fopen a temp file, verify non-null FILE*, fclose returns 0 |
+| `fwrite_fread_roundtrip` | Write bytes with fwrite, rewind, read back with fread, compare |
+| `fgets_fputs` | fputs a string, rewind, fgets reads it back |
+| `fseek_ftell` | fseek to offset, ftell returns same offset |
+| `fgetc_fputc` | Write chars with fputc, rewind, read back with fgetc |
+| `fileno_returns_valid_fd` | fileno on fopen'd file returns fd >= 0 |
+| `popen_pclose` | popen "echo hello", read output, pclose returns 0 |
+| `feof_after_read` | Read until EOF, feof returns non-zero |
+| `ferror_on_write_to_readonly` | Write to read-only stream, ferror returns non-zero |
+| `fpos_t_layout` | fpos_t struct size matches C sizeof (16 bytes) |
+| `io_file_struct_size` | _IO_FILE struct is 216 bytes (glibc x86-64) |
+| `tmpfile_creates_anonymous` | tmpfile returns non-null, fileno >= 0, fclose succeeds |

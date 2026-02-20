@@ -23,6 +23,7 @@ C-header-to-WinMD approach scales beyond test fixtures to real system APIs.
 | `posix::signal` | `signal.h`, `bits/sigaction.h`, `bits/signum-*.h`, `bits/sigcontext.h`, `bits/types/*` | 30 | ~50 | `sigaction` (union), `siginfo_t` (nested unions), `__sigset_t`, `sigcontext`, `stack_t` |
 | `posix::socket` | `sys/socket.h`, `bits/socket.h`, `bits/socket_type.h`, `bits/socket-constants.h` | 20 | ~102 | `sockaddr`, `sockaddr_storage`, `msghdr`, `iovec`, `cmsghdr`, `linger` |
 | `posix::stat`   | `sys/stat.h`, `bits/struct_stat.h`, `bits/types/struct_timespec.h` | 17 | 4 | `stat`, `timespec` |
+| `posix::stdio`  | `stdio.h`, `bits/stdio_lim.h`, `bits/types/__fpos_t.h`, `bits/types/__mbstate_t.h`, `bits/types/struct_FILE.h`, `bits/types/cookie_io_functions_t.h` | 78 | 21 | `_IO_FILE`, `fpos_t` (`_G_fpos_t`), `__mbstate_t`, `cookie_io_functions_t` + cookie callback typedefs |
 | `posix::time`   | `time.h`, `bits/time.h` | ~25 | ~12 | `tm`, `itimerspec`, `__locale_struct` |
 | `posix::types`  | `sys/types.h`, `bits/types.h` | — | — | `__fsid_t` + 94 shared typedefs (`uid_t`, `pid_t`, `mode_t`, …) |
 | `posix::unistd` | `unistd.h` | 103 | ~23 | — |
@@ -101,7 +102,7 @@ partitions use cross-partition TypeRefs (e.g. `super::types::__uid_t`).
 ## Partition Config
 
 The TOML config lives at `bnd-posix-gen/bnd-posix.toml`
-and defines fifteen partitions:
+and defines sixteen partitions:
 
 | Partition | Namespace | Headers traversed |
 |---|---|---|
@@ -118,6 +119,7 @@ and defines fifteen partitions:
 | Signal | `posix.signal` | `signal.h`, `bits/sigaction.h`, `bits/signum-generic.h`, `bits/signum-arch.h`, `bits/sigcontext.h`, `bits/types/__sigset_t.h`, `bits/types/siginfo_t.h`, `bits/types/__sigval_t.h`, `bits/types/stack_t.h`, `bits/types/struct_sigstack.h` |
 | Socket | `posix.socket` | `sys/socket.h`, `bits/socket.h`, `bits/socket_type.h`, `bits/socket-constants.h`, `bits/types/struct_iovec.h` |
 | Stat | `posix.stat` | `sys/stat.h`, `bits/struct_stat.h`, `bits/types/struct_timespec.h` |
+| Stdio | `posix.stdio` | `stdio.h`, `bits/stdio_lim.h`, `bits/types/__fpos_t.h`, `bits/types/__mbstate_t.h`, `bits/types/struct_FILE.h`, `bits/types/cookie_io_functions_t.h` |
 | Time | `posix.time` | `time.h`, `bits/time.h`, `bits/types/clock_t.h`, `bits/types/struct_tm.h`, `bits/types/clockid_t.h`, `bits/types/timer_t.h`, `bits/types/struct_itimerspec.h`, … |
 | Unistd | `posix.unistd` | `unistd.h` |
 
@@ -175,6 +177,41 @@ in bnd-winmd core (see [bnd-posix.md](systesting/bnd-posix.md) for details):
     `mode_t`, etc.) appear in multiple headers. A dedicated `posix.types`
     partition owns them; the type registry uses first-writer-wins for
     typedefs, and the dedup pass removes duplicates from later partitions.
+18. **`_IO_FILE` struct traversal** — `struct _IO_FILE` is defined in
+    `bits/types/struct_FILE.h` with ~30 internal fields. Several fields
+    reference glibc-private incomplete types (`_IO_marker`, `_IO_codecvt`,
+    `_IO_wide_data`) which map to `*mut c_void` via the incomplete-record
+    fallback (challenge #10). `_IO_lock_t` is forward-declared but gets an
+    opaque `isize` typedef. Traversing `struct_FILE.h` is required because
+    windows-bindgen panics with "type not found" when functions reference
+    a type that has no definition in the winmd. The emitted struct has the
+    correct 216-byte layout, validated by the `io_file_struct_size` E2E test.
+19. **Variadic printf/scanf family** — `printf`, `scanf`, `dprintf`,
+    `fprintf`, `sprintf`, `snprintf`, `fscanf`, `sscanf` and their
+    variants are variadic and auto-skipped. Non-variadic alternatives
+    like `fputs`, `fgets`, `fread`, `fwrite` are the primary I/O surface.
+    The `v*` variants (`vfprintf`, `vsnprintf`, etc.) take `va_list` which
+    maps to `*mut c_void` — present but not directly callable from safe Rust.
+20. **glibc `__REDIRECT` duplicates** — glibc uses `__REDIRECT` macros
+    for LFS (Large File Support) compatibility. Functions like `fseeko`,
+    `ftello`, `fgetpos`, `fsetpos` have both 32-bit and 64-bit redirected
+    variants. The function dedup pass (challenge #5) handles this.
+21. **`fpos_t` struct** — `fpos_t` is `_G_fpos_t { __off_t __pos;
+    __mbstate_t __state; }`. Requires traversing `bits/types/__fpos_t.h`
+    and `bits/types/__mbstate_t.h` for `fgetpos`/`fsetpos` to work.
+22. **`cookie_io_functions_t`** — glibc extension struct with function
+    pointer fields (read/write/seek/close callbacks). Used only by
+    `fopencookie` (GNU extension, not POSIX). Requires traversing
+    `bits/types/cookie_io_functions_t.h`. The callback fields are emitted
+    as delegate typedefs (`cookie_read_function_t`, etc.).
+23. **`__va_list_tag` compiler built-in** — on x86-64, `va_list` is
+    `typedef __builtin_va_list`, whose canonical type is
+    `__va_list_tag[1]`. The record type `__va_list_tag` has no header
+    file location and is not reachable through any traverse list, causing
+    windows-bindgen to panic with "type not found". Fix: map
+    `__va_list_tag` to `CType::Void` in the `Record` arm of
+    `map_clang_type`, so the `v*printf`/`v*scanf` functions get
+    `*mut c_void` parameters.
 
 ## How to Add a New Partition
 
@@ -407,3 +444,4 @@ that call real libc functions through the generated bindings:
 | `sched_e2e.rs` | Sched (SCHED_* constants, sched_yield, priority range, cpu_set_t/sched_param layout) |
 | `time_e2e.rs` | Time (CLOCK_* constants, clock_gettime, gmtime, mktime roundtrip, struct tm layout) |
 | `pthread_e2e.rs` | Pthread (PTHREAD_* constants, mutex lock/unlock, rwlock, spinlock, TLS keys, pthread_create/join, struct sizes) |
+| `stdio_e2e.rs` | Stdio (BUFSIZ/EOF/SEEK_* constants, fopen/fclose, fread/fwrite roundtrip, fgets/fputs, fseek/ftell, fgetc/fputc, fileno, popen/pclose, feof, ferror, tmpfile, fpos_t layout, _IO_FILE layout) |

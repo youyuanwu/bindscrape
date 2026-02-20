@@ -32,6 +32,8 @@ pub mod signal;
 pub mod socket;
 #[cfg(feature = "stat")]
 pub mod stat;
+#[cfg(feature = "stdio")]
+pub mod stdio;
 #[cfg(feature = "time")]
 pub mod time;
 #[cfg(feature = "types")]

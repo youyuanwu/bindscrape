@@ -686,6 +686,13 @@ fn map_clang_type(ty: &ClangType) -> Result<CType> {
             if let Some(decl) = decl
                 && let Some(name) = decl.get_name()
             {
+                // __va_list_tag is a compiler built-in struct backing va_list on
+                // x86-64.  It has no header file location and must not leak into
+                // the winmd.  Map it to Void so pointers become `*mut c_void`.
+                if name == "__va_list_tag" {
+                    return Ok(CType::Void);
+                }
+
                 // Check if the type is complete (has a definition, not just forward-declared).
                 // Incomplete/opaque types (like `struct internal_state` in zlib) are
                 // mapped to Void so that pointers to them become `*mut c_void`.
