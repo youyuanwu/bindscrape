@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::LazyLock;
 
 static OPENSSL_WINMD: LazyLock<Vec<u8>> = LazyLock::new(|| {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/openssl/openssl.toml");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../bnd-openssl-gen/openssl.toml");
     bnd_winmd::generate(&path).expect("generate openssl winmd")
 });
 

@@ -133,8 +133,8 @@ bnd-openssl/                        ← product crate
 │       ├── bio/mod.rs              ← BIO_new, BIO_read, BIO_write, …
 │       └── ssl/mod.rs              ← SSL_CTX_new, SSL_connect, TLS_*, …
 
-tests/fixtures/openssl/
-└── openssl.toml                    ← multi-partition config
+bnd-openssl-gen/
+├── openssl.toml                    ← multi-partition config
 
 bnd-winmd/tests/
 └── roundtrip_openssl.rs            ← winmd roundtrip tests
@@ -150,7 +150,7 @@ cargo run -p bnd-openssl-gen
 
 ## Config
 
-**`tests/fixtures/openssl/openssl.toml`**:
+**`bnd-openssl-gen/openssl.toml`**:
 
 ```toml
 include_paths = ["/usr/include/x86_64-linux-gnu", "/usr/include"]
@@ -549,7 +549,7 @@ E2E tests live in `bnd-openssl/tests/`, one per partition:
 
 ## Implementation Steps
 
-1. ✅ Create `tests/fixtures/openssl/openssl.toml`
+1. ✅ Create `bnd-openssl-gen/openssl.toml`
    Started with types + crypto + rand, expanded to all 8 active partitions
 2. ✅ Add `bnd-openssl` and `bnd-openssl-gen` to workspace `Cargo.toml` members
 3. ✅ Create `bnd-openssl-gen/` generator crate

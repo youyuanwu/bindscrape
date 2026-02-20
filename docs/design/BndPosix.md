@@ -100,7 +100,7 @@ partitions use cross-partition TypeRefs (e.g. `super::types::__uid_t`).
 
 ## Partition Config
 
-The TOML config lives at `tests/fixtures/bnd-posix/bnd-posix.toml`
+The TOML config lives at `bnd-posix-gen/bnd-posix.toml`
 and defines fifteen partitions:
 
 | Partition | Namespace | Headers traversed |
@@ -201,7 +201,7 @@ Key questions:
 
 ### 2. Add a `[[partition]]` to `bnd-posix.toml`
 
-Edit `tests/fixtures/bnd-posix/bnd-posix.toml` and append a new partition
+Edit `bnd-posix-gen/bnd-posix.toml` and append a new partition
 block:
 
 ```toml

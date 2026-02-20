@@ -366,7 +366,7 @@ Test against real filesystem operations using temp files.
 3. ✅ C `long` → `I64` for Linux LP64 ABI
 4. ✅ Array parameter decay → pointer in `extract_function()`
 5. ✅ Function deduplication via `HashSet` in `collect_functions()`
-6. ✅ Created `tests/fixtures/bnd-posix/bnd-posix.toml`
+6. ✅ Created `bnd-posix-gen/bnd-posix.toml`
    (5 partitions: Dirent, Fcntl, Mmap, Stat, Unistd)
 7. ✅ Added roundtrip tests in `roundtrip_posixfile.rs`
 8. ✅ Created `bnd-posix/` crate with feature-gated namespace modules
