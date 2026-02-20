@@ -8,10 +8,10 @@ static OPENSSL_WINMD: LazyLock<Vec<u8>> = LazyLock::new(|| {
     bnd_winmd::generate(&path).expect("generate openssl winmd")
 });
 
-fn open_index() -> windows_metadata::reader::Index {
+fn open_index() -> windows_metadata::reader::TypeIndex {
     let file =
         windows_metadata::reader::File::new(OPENSSL_WINMD.clone()).expect("parse openssl winmd");
-    windows_metadata::reader::Index::new(vec![file])
+    windows_metadata::reader::TypeIndex::new(vec![file])
 }
 
 // ---------------------------------------------------------------------------
@@ -354,5 +354,46 @@ fn ssl_error_constants() {
     assert!(
         fields.contains(&"SSL_ERROR_SSL".to_string()),
         "SSL_ERROR_SSL missing. Fields: {fields:?}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Cross-winmd references — posix types are NOT local TypeDefs
+// ---------------------------------------------------------------------------
+
+#[test]
+fn crypto_no_local_tm_typedef() {
+    let index = open_index();
+
+    // After removing bits/types/struct_tm.h from traverse and adding
+    // [[type_import]], `tm` should NOT appear as a local TypeDef in
+    // any openssl namespace.  It should only exist as a TypeRef pointing
+    // to posix.time.tm.
+    let local_types: Vec<(String, String)> = index
+        .types()
+        .map(|td| (td.namespace().to_string(), td.name().to_string()))
+        .collect();
+
+    let has_local_tm = local_types.iter().any(|(_, n)| n == "tm");
+    assert!(
+        !has_local_tm,
+        "tm should NOT be a local TypeDef — it should be a cross-winmd TypeRef. Found: {local_types:?}"
+    );
+}
+
+#[test]
+fn crypto_no_local_io_file_typedef() {
+    let index = open_index();
+
+    // _IO_FILE should not be a local TypeDef either.
+    let local_types: Vec<(String, String)> = index
+        .types()
+        .map(|td| (td.namespace().to_string(), td.name().to_string()))
+        .collect();
+
+    let has_local_io_file = local_types.iter().any(|(_, n)| n == "_IO_FILE");
+    assert!(
+        !has_local_io_file,
+        "_IO_FILE should NOT be a local TypeDef. Found: {local_types:?}"
     );
 }

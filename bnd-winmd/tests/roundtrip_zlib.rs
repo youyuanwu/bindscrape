@@ -8,9 +8,9 @@ static ZLIB_WINMD: LazyLock<Vec<u8>> = LazyLock::new(|| {
     bnd_winmd::generate(&path).expect("generate zlib winmd")
 });
 
-fn open_index() -> windows_metadata::reader::Index {
+fn open_index() -> windows_metadata::reader::TypeIndex {
     let file = windows_metadata::reader::File::new(ZLIB_WINMD.clone()).expect("parse zlib winmd");
-    windows_metadata::reader::Index::new(vec![file])
+    windows_metadata::reader::TypeIndex::new(vec![file])
 }
 
 #[test]
@@ -19,7 +19,7 @@ fn zlib_structs_present() {
     let index = open_index();
 
     let types: Vec<(String, String)> = index
-        .all()
+        .types()
         .map(|td| (td.namespace().to_string(), td.name().to_string()))
         .collect();
 
@@ -41,7 +41,7 @@ fn zlib_delegates_present() {
     let index = open_index();
 
     let types: Vec<(String, String)> = index
-        .all()
+        .types()
         .map(|td| (td.namespace().to_string(), td.name().to_string()))
         .collect();
 

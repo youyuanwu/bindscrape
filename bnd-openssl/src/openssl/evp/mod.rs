@@ -968,16 +968,16 @@ windows_link::link!("crypto" "C" fn EVP_PKEY_paramgen(ctx : *mut super::types:: 
 windows_link::link!("crypto" "C" fn EVP_PKEY_paramgen_init(ctx : *mut super::types:: EVP_PKEY_CTX) -> i32);
 #[cfg(feature = "types")]
 windows_link::link!("crypto" "C" fn EVP_PKEY_print_params(out : *mut super::types:: BIO, pkey : *const super::types:: EVP_PKEY, indent : i32, pctx : *mut super::types:: ASN1_PCTX) -> i32);
-#[cfg(all(feature = "crypto", feature = "types"))]
-windows_link::link!("crypto" "C" fn EVP_PKEY_print_params_fp(fp : *mut super::crypto:: _IO_FILE, pkey : *const super::types:: EVP_PKEY, indent : i32, pctx : *mut super::types:: ASN1_PCTX) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("crypto" "C" fn EVP_PKEY_print_params_fp(fp : *mut bnd_posix::posix::stdio:: _IO_FILE, pkey : *const super::types:: EVP_PKEY, indent : i32, pctx : *mut super::types:: ASN1_PCTX) -> i32);
 #[cfg(feature = "types")]
 windows_link::link!("crypto" "C" fn EVP_PKEY_print_private(out : *mut super::types:: BIO, pkey : *const super::types:: EVP_PKEY, indent : i32, pctx : *mut super::types:: ASN1_PCTX) -> i32);
-#[cfg(all(feature = "crypto", feature = "types"))]
-windows_link::link!("crypto" "C" fn EVP_PKEY_print_private_fp(fp : *mut super::crypto:: _IO_FILE, pkey : *const super::types:: EVP_PKEY, indent : i32, pctx : *mut super::types:: ASN1_PCTX) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("crypto" "C" fn EVP_PKEY_print_private_fp(fp : *mut bnd_posix::posix::stdio:: _IO_FILE, pkey : *const super::types:: EVP_PKEY, indent : i32, pctx : *mut super::types:: ASN1_PCTX) -> i32);
 #[cfg(feature = "types")]
 windows_link::link!("crypto" "C" fn EVP_PKEY_print_public(out : *mut super::types:: BIO, pkey : *const super::types:: EVP_PKEY, indent : i32, pctx : *mut super::types:: ASN1_PCTX) -> i32);
-#[cfg(all(feature = "crypto", feature = "types"))]
-windows_link::link!("crypto" "C" fn EVP_PKEY_print_public_fp(fp : *mut super::crypto:: _IO_FILE, pkey : *const super::types:: EVP_PKEY, indent : i32, pctx : *mut super::types:: ASN1_PCTX) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("crypto" "C" fn EVP_PKEY_print_public_fp(fp : *mut bnd_posix::posix::stdio:: _IO_FILE, pkey : *const super::types:: EVP_PKEY, indent : i32, pctx : *mut super::types:: ASN1_PCTX) -> i32);
 #[cfg(feature = "types")]
 windows_link::link!("crypto" "C" fn EVP_PKEY_private_check(ctx : *mut super::types:: EVP_PKEY_CTX) -> i32);
 #[cfg(feature = "types")]

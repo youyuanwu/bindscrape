@@ -284,6 +284,6 @@ From [RustGenerator.md](design/RustGenerator.md):
 | Feature | Complexity | Status |
 |---|---|---|
 | Multi-header wrapper generation | Low | ⬜ |
-| Cross-WinMD type imports (`[[type_import]]`) | Medium | ⬜ |
+| Cross-WinMD type imports (`[[type_import]]`) | Medium | ✅ [Design doc](design/CrossWinmdReferences.md) |
 | COM interface support | Medium | ⬜ |
 | Inline function skipping | Low | ⬜ |

@@ -53,13 +53,13 @@ C/C++ Headers
 
 | Feature | Notes |
 |---|---|
-| CLI (`clap`) + TOML config parsing | `main.rs` (86 LOC), `config.rs` (145 LOC) |
-| Intermediate model types | `model.rs` (185 LOC) — `StructDef`, `EnumDef`, `FunctionDef`, `TypedefDef`, `ConstantDef`, `CType`, `TypeRegistry` |
-| Clang extraction (`clang` crate + sonar) | `extract.rs` (840 LOC) — `collect_*` helpers for uniform extraction, custom typedef/struct discovery to work around sonar limitations |
+| CLI (`clap`) + TOML config parsing | `main.rs`, `config.rs` |
+| Intermediate model types | `model.rs` — `StructDef`, `EnumDef`, `FunctionDef`, `TypedefDef`, `ConstantDef`, `CType`, `TypeRegistry` |
+| Clang extraction (`clang` crate + sonar) | `extract.rs` — `collect_*` helpers for uniform extraction, custom typedef/struct discovery to work around sonar limitations |
 | Partition filtering by source location | `should_emit_by_location()` checks `Entity::get_location()` against traverse file list |
 | Type mapping (clang `TypeKind` → `CType`) | Void, Bool, char types, int/uint (all widths), float/double, Pointer, ConstantArray, IncompleteArray, Elaborated, Typedef, Record, Enum, FunctionPrototype. Incomplete records → Void. |
 | System typedef resolution | `CType::Named { resolved }` carries clang's canonical type; emit falls back to it for unregistered typedefs. `va_list` → `*mut c_void` at extraction. |
-| WinMD emission | `emit.rs` (419 LOC) — enums, structs, unions, typedefs, delegates, functions (P/Invoke), constants |
+| WinMD emission | `emit.rs` — enums, structs, unions, typedefs, delegates, functions (P/Invoke), constants |
 | Union support | `StructDef.is_union` flag. `ExplicitLayout` + `FieldLayout(offset=0)` for unions, `SequentialLayout` for structs. Supplemental pass detects `UnionDecl`. |
 | Anonymous nested types | `try_extract_anonymous_field()` detects `Entity::is_anonymous()` on canonical type declarations. Recursive extraction with synthetic names (`ParentName_FieldName`). |
 | Anonymous enum → constants | `collect_enums()` detects unnamed enums (e.g. `enum { DT_UNKNOWN = 0, ... }`) and emits variants as standalone `ConstantDef` entries instead of named enum TypeDefs. |
@@ -74,9 +74,10 @@ C/C++ Headers
 | Function deduplication | `collect_functions()` uses `HashSet<String>` to skip duplicates from glibc `__REDIRECT` macros |
 | PtrConst workaround | Always emit `PtrMut` — `ELEMENT_TYPE_CMOD_REQD` mid-chain in pointer blobs panics windows-bindgen. Mutability preserved via `ParamAttributes::Out` on mutable pointer parameters. |
 | Warn-and-skip error handling | Non-fatal failures log `tracing::warn!` and skip the declaration |
-| Round-trip integration tests | Across 4 files |
-| E2E integration tests | Across 4 crates (zlib against real `libz.so`, POSIX file I/O, mmap, dirent, sockets, inet, netdb, signal) |
-| Package-mode code generation | `bnd-posix-gen` drives bnd-winmd + `windows-bindgen --package` to generate the `bnd-posix` source tree with feature-gated sub-modules |
+| Round-trip integration tests | Multiple fixture files |
+| E2E integration tests | Multiple crates (zlib against real `libz.so`, 16 POSIX API families via bnd-posix, OpenSSL libssl+libcrypto via bnd-openssl) |
+| Package-mode code generation | `bnd-posix-gen` and `bnd-openssl-gen` drive bnd-winmd + `windows-bindgen --package` to generate checked-in source trees with feature-gated sub-modules |
+| Cross-WinMD type imports | `[[type_import]]` in TOML pre-seeds TypeRegistry from external winmd; `--reference` flag tells windows-bindgen to emit external crate paths. See [CrossWinmdReferences.md](CrossWinmdReferences.md) |
 
 ### What Is NOT Yet Implemented
 
@@ -84,7 +85,6 @@ C/C++ Headers
 |---|---|
 | Bitfield attribute emission (`NativeBitfieldAttribute`) | Medium — extraction works, emission TODO |
 | Multi-header wrapper generation | Low |
-| Cross-WinMD type imports (`[[type_import]]`) | Medium |
 | COM interface support | Medium — needs `ELEMENT_TYPE_CLASS` fix in `windows-metadata` |
 | Nested types (`NestedClass`) | Low |
 | Inline function skipping | Low — detect `static inline` via storage class |
@@ -97,16 +97,17 @@ C/C++ Headers
 bnd-winmd/
 ├── Cargo.toml
 ├── src/
-│   ├── lib.rs               # Public API + module declarations (115 LOC)
-│   ├── config.rs            # TOML config deserialization (122 LOC)
-│   ├── model.rs             # Intermediate types: StructDef, CType, TypeRegistry (177 LOC)
-│   ├── extract.rs           # clang Entity/Type → model (613 LOC)
-│   └── emit.rs              # model → windows-metadata writer calls (419 LOC)
+│   ├── lib.rs               # Public API + module declarations
+│   ├── config.rs            # TOML config deserialization
+│   ├── model.rs             # Intermediate types: StructDef, CType, TypeRegistry
+│   ├── extract.rs           # clang Entity/Type → model
+│   └── emit.rs              # model → windows-metadata writer calls
 └── tests/
-    ├── roundtrip_simple.rs   # simple.h fixture (297 LOC)
-    ├── roundtrip_multi.rs    # multi-partition fixture (141 LOC)
-    ├── roundtrip_posixfile.rs # bnd-posix fixture (245 LOC)
-    └── roundtrip_zlib.rs     # zlib system header (200 LOC)
+    ├── roundtrip_simple.rs   # simple.h fixture
+    ├── roundtrip_multi.rs    # multi-partition fixture
+    ├── roundtrip_posixfile.rs # bnd-posix fixture
+    ├── roundtrip_zlib.rs     # zlib system header
+    └── roundtrip_openssl.rs  # openssl multi-library + cross-winmd refs
 
 tests/
 ├── fixtures/
@@ -123,30 +124,64 @@ bnd-posix/
 ├── Cargo.toml                # Feature-gated sub-modules
 ├── src/
 │   ├── lib.rs                # Hand-written module root
-│   └── posix/                # Auto-generated namespace modules
+│   └── posix/                # Auto-generated namespace modules (16 partitions)
 │       ├── mod.rs
 │       ├── dirent/mod.rs
+│       ├── dl/mod.rs
+│       ├── errno/mod.rs
 │       ├── fcntl/mod.rs
 │       ├── inet/mod.rs
 │       ├── mmap/mod.rs
 │       ├── netdb/mod.rs
+│       ├── pthread/mod.rs
+│       ├── sched/mod.rs
 │       ├── signal/mod.rs
 │       ├── socket/mod.rs
 │       ├── stat/mod.rs
+│       ├── stdio/mod.rs
+│       ├── time/mod.rs
 │       ├── types/mod.rs
 │       └── unistd/mod.rs
-└── tests/
-    ├── posixfile_e2e.rs      # 11 Fcntl/Unistd E2E tests
-    ├── stat_e2e.rs           # 4 Stat E2E tests
-    ├── mmap_e2e.rs           # 5 Mmap E2E tests
-    ├── dirent_e2e.rs         # 5 Dirent E2E tests
-    ├── socket_e2e.rs         # 16 Socket E2E tests
-    ├── inet_e2e.rs           # 11 Inet E2E tests
-    ├── netdb_e2e.rs          # 10 Netdb E2E tests
-    └── signal_e2e.rs         # 14 Signal E2E tests
-```
+└── tests/                    # E2E tests (one per partition)
+    ├── posixfile_e2e.rs      # Fcntl/Unistd
+    ├── stat_e2e.rs           # Stat
+    ├── mmap_e2e.rs           # Mmap
+    ├── dirent_e2e.rs         # Dirent
+    ├── dl_e2e.rs             # Dlfcn
+    ├── errno_e2e.rs          # Errno
+    ├── inet_e2e.rs           # Inet
+    ├── netdb_e2e.rs          # Netdb
+    ├── pthread_e2e.rs        # Pthread
+    ├── sched_e2e.rs          # Sched
+    ├── signal_e2e.rs         # Signal
+    ├── socket_e2e.rs         # Socket
+    ├── stdio_e2e.rs          # Stdio
+    └── time_e2e.rs           # Time
 
-**Total**: ~1,709 LOC (library) + ~883 LOC (roundtrip tests) + ~834 LOC (E2E crates) + 717 LOC (bnd-posix E2E)
+bnd-openssl/
+├── Cargo.toml                # Feature-gated sub-modules, depends on bnd-posix
+├── build.rs                  # cargo:rustc-link-lib=crypto / ssl
+├── src/
+│   ├── lib.rs                # Hand-written module root
+│   └── openssl/              # Auto-generated namespace modules (8 partitions)
+│       ├── mod.rs
+│       ├── bio/mod.rs
+│       ├── bn/mod.rs
+│       ├── crypto/mod.rs
+│       ├── evp/mod.rs
+│       ├── rand/mod.rs
+│       ├── sha/mod.rs
+│       ├── ssl/mod.rs
+│       └── types/mod.rs
+└── tests/                    # E2E tests (one per partition)
+    ├── bio_e2e.rs
+    ├── bn_e2e.rs
+    ├── crypto_e2e.rs
+    ├── evp_e2e.rs
+    ├── rand_e2e.rs
+    ├── sha_e2e.rs
+    └── ssl_e2e.rs
+```
 
 ---
 
@@ -155,7 +190,7 @@ bnd-posix/
 ```toml
 [dependencies]
 clang = { version = "2.0", features = ["clang_10_0"] }
-windows-metadata = "0.59"
+windows-metadata = "0.60"
 toml = "1"
 clap = { version = "4", features = ["derive"] }
 anyhow = "1"
@@ -215,7 +250,7 @@ serde = { version = "1", features = ["derive"] }
 
 ## Test Coverage
 
-**138 total tests** (all passing, clippy clean):
+All passing, clippy clean.
 
 ### Roundtrip Tests
 
@@ -234,6 +269,10 @@ struct fields, struct sizes, constants, pinvoke.
 **roundtrip_zlib.rs** (system headers): zlib structs, delegates,
 functions, constants, z_stream fields, pinvoke.
 
+**roundtrip_openssl.rs** (openssl): multi-library partitioning (crypto vs
+ssl), opaque typedefs at scale, cross-WinMD type import validation (asserts
+`tm` and `_IO_FILE` are not local TypeDefs).
+
 ### E2E Tests
 
 Generated FFI bindings linked against real native libraries.
@@ -243,7 +282,8 @@ Generated FFI bindings linked against real native libraries.
 | `e2e-simple` | Single partition, simple.h, widgets + unions + anonymous nested types |
 | `e2e-multi` | Multi-partition, cross-namespace type references |
 | `e2e-zlib` | System header, real libz.so, compress/uncompress roundtrip |
-| `bnd-posix` | Real libc: file I/O, mmap, dirent, stat, sockets, inet, netdb, signal |
+| `bnd-posix` | Real libc: 16 POSIX API families (file I/O, mmap, dirent, stat, sockets, inet, netdb, signal, dl, errno, sched, time, pthread, stdio, types, unistd) |
+| `bnd-openssl` | Real libssl + libcrypto: 8 partitions, opaque typedefs, multi-library, cross-WinMD refs to bnd-posix |
 
 ### Doc Tests + Freshness Test
 
@@ -284,15 +324,19 @@ The crate's highest feature flag is `clang_10_0`, but system libclang may be
 18+. Works fine — all C header parsing APIs are stable since clang 3.x. If
 a newer API is needed, add `clang-sys` as a direct dependency for raw FFI.
 
-### Cross-WinMD Type References
+### ~~Cross-WinMD Type References~~ ✅ Implemented
 
-For v1, imported types (e.g., `HRESULT`) are defined locally in the output winmd.
-For v2, the `[[type_import]]` config and proper `AssemblyRef`/`TypeRef` emission
-would allow referencing types from external winmd files like `Windows.Win32.winmd`.
+The `[[type_import]]` TOML config pre-seeds the `TypeRegistry` from an
+external winmd file. Types found in the external winmd are emitted as
+TypeRef rows instead of local TypeDefs. At generation time, both winmds
+are passed to `windows-bindgen` via `--in`, with `--reference` suppressing
+local codegen for the imported namespace. This avoids `AssemblyRef` — the
+merged reader resolves types by `(namespace, name)` across all loaded
+winmds.
 
-The existing `File::TypeRef()` public API creates cross-namespace references
-within a single winmd. Cross-assembly references need the private `AssemblyRef()`
-method to be exposed.
+First consumer: `bnd-openssl` imports POSIX types (`tm`, `_IO_FILE`,
+`pthread_once_t`, `off_t`, etc.) from `bnd-posix.winmd` instead of
+re-extracting glibc headers. See [CrossWinmdReferences.md](CrossWinmdReferences.md).
 
 ### `windows-bindgen` Compatibility Conventions
 
@@ -312,18 +356,19 @@ All of the above are implemented and verified by tests.
 
 ## Actual LOC
 
-| Component | LOC | File |
+| Component | LOC | Scope |
 |---|---|---|
-| Public API + module declarations | 120 | `lib.rs` |
-| TOML config | 145 | `config.rs` |
-| Intermediate model types | 185 | `model.rs` |
-| Extraction (clang → model) | 840 | `extract.rs` |
-| Emission (model → winmd) | 419 | `emit.rs` |
-| Roundtrip tests | 883 | 4 files |
-| E2E test crates | ~834 | 3 crates |
-| bnd-posix E2E tests | 933 | 1 file |
-| **Total (library)** | **1,709** | |
-| **Total (library + tests)** | **~4,359** | |
+| Public API + module declarations | ~190 | `lib.rs` |
+| TOML config | ~145 | `config.rs` |
+| Intermediate model types | ~200 | `model.rs` |
+| Extraction (clang → model) | ~860 | `extract.rs` |
+| Emission (model → winmd) | ~430 | `emit.rs` |
+| Roundtrip tests | ~1,340 | 5 files |
+| E2E test crates (simple/multi/zlib) | ~530 | 3 crates |
+| bnd-posix E2E tests | ~2,000 | 14 files |
+| bnd-openssl E2E tests | ~370 | 7 files |
+| **Total (bnd-winmd library)** | **~1,855** | |
+| **Total (library + all tests)** | **~6,095** | |
 
 ---
 
@@ -345,7 +390,7 @@ The writer hardcodes `ELEMENT_TYPE_VALUETYPE` for all named types. Options:
 - ✅ Opaque typedef handling
 - ✅ PtrConst workaround
 - ⬜ Bitfield emission (`NativeBitfieldAttribute`)
-- ⬜ Cross-WinMD type imports
+- ✅ Cross-WinMD type imports ([design doc](CrossWinmdReferences.md))
 - ⬜ COM interfaces (needs ELEMENT_TYPE_CLASS)
 - ⬜ Nested types
 

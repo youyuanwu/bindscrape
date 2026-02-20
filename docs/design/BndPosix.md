@@ -87,8 +87,10 @@ cargo run -p bnd-posix-gen
    `mod.rs` per namespace under `src/posix/`, with `#[cfg(feature)]`
    gating on each sub-module. It also appends feature definitions to
    `Cargo.toml` after the `# generated features` marker.
-3. The intermediate `.winmd` is deleted — `bnd-posix` is a pure Rust crate
-   with no build-time code generation.
+3. The intermediate `.winmd` is preserved in `bnd-posix/winmd/bnd-posix.winmd`
+   so that downstream crates (e.g. `bnd-openssl-gen`) can import POSIX types
+   via cross-WinMD references instead of re-extracting system headers. See
+   [CrossWinmdReferences.md](CrossWinmdReferences.md).
 
 ### Why namespace modules?
 

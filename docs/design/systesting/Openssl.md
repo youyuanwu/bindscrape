@@ -394,7 +394,7 @@ public fields, but wrapped in `#ifndef OPENSSL_NO_DEPRECATED_3_0`
 | 8 | Macro aliases (`EVP_MD_CTX_create`) | Not extracted (expected) — underlying real functions are available |
 | 9 | Callback typedefs | Extracted as WinMD delegates correctly |
 | 10 | Cross-partition include coupling | Resolved via TypeRegistry cross-partition TypeRef, same as bnd-posix |
-| 11 | `struct tm` / `FILE` in crypto.h | Fixed by adding `bits/types/struct_tm.h`, `struct_FILE.h` to traverse |
+| 11 | `struct tm` / `FILE` in crypto.h | Resolved via cross-WinMD type import — system types now reference `bnd-posix.winmd` instead of being extracted locally (see [CrossWinmdReferences.md](../CrossWinmdReferences.md)) |
 | 12 | `tls_session_ticket_ext_st` in ssl.h | Fixed by adding `openssl/tls1.h` to ssl traverse |
 | 13 | LHASH inline unions in err.h | **Unresolved** — err partition skipped. See Known Limitations |
 
@@ -422,8 +422,20 @@ Partitions should be ordered from most-depended-on to least-depended-on:
 
 Follows the bnd-posix-gen pattern: `generate(output_dir: &Path)` runs
 bnd-winmd → windows-bindgen `--package --sys --filter openssl` → deletes
-intermediate winmd. TOML generation is enabled — `windows-bindgen`
-auto-appends feature definitions after the `# generated features` sentinel.
+intermediate winmd.
+
+**Cross-WinMD references:** The generator passes both `openssl.winmd` and
+`bnd-posix.winmd` to windows-bindgen via `--in`, with
+`--reference bnd_posix,full,posix` so that POSIX types are not emitted
+locally. The `full` style is required because `bnd-posix` keeps the root
+`posix` module — `skip-root` would generate `bnd_posix::time::tm` which
+doesn't compile. `--no-toml` is included because bnd-openssl has its own
+hand-authored `Cargo.toml`.
+
+The product crate depends on `bnd-posix` with feature gates:
+`features = ["time", "stdio", "pthread", "types"]`. Generated code
+contains paths like `bnd_posix::posix::time::tm` and
+`bnd_posix::posix::pthread::pthread_once_t`.
 
 Unlike bnd-posix, the product crate needs a `build.rs` to emit
 `cargo:rustc-link-lib=crypto` and `cargo:rustc-link-lib=ssl` —
@@ -520,6 +532,8 @@ E2E tests live in `bnd-openssl/tests/`, one per partition:
 | `ssl_functions_present` | `SSL_CTX_new/free`, `SSL_new/free`, `TLS_client_method` |
 | `ssl_pinvoke_library_is_ssl` | `SSL_CTX_new` has ImplMap with `import_scope.name() == "ssl"` — validates two-library partitioning |
 | `ssl_error_constants` | `SSL_ERROR_NONE`, `SSL_ERROR_SSL` constants present |
+| `crypto_no_local_tm_typedef` | `tm` is NOT a local TypeDef in any openssl namespace — validates cross-WinMD import from posix |
+| `crypto_no_local_io_file_typedef` | `_IO_FILE` is NOT a local TypeDef in any openssl namespace — validates cross-WinMD import from posix |
 
 ---
 
@@ -535,6 +549,7 @@ E2E tests live in `bnd-openssl/tests/`, one per partition:
 | **Callback typedefs** | `pem_password_cb`, `BIO_callback_fn_ex` emitted as delegates |
 | **Real crypto operations** | SHA-256 digest verified against known test vector |
 | **Alloc/free lifecycle** | EVP_MD_CTX, EVP_CIPHER_CTX, BN, BIO, SSL_CTX — create, use, destroy |
+| **Cross-WinMD type references** | POSIX types (`tm`, `_IO_FILE`, `pthread_once_t`, `off_t`, etc.) imported from bnd-posix.winmd, not duplicated |
 | **winmd format** | `windows-bindgen` accepts multi-partition, multi-library winmd |
 
 ---
@@ -621,5 +636,6 @@ are unavailable until this is resolved.
 | Non-opaque structs | 3 | ~40 | 3-6 (SHA contexts, BN_GENCB) |
 | Constants | ~29 | ~600 | ~200 |
 | Callbacks | 4 | ~5 | ~10 |
+| Cross-WinMD refs | No | No | Yes (bnd-posix.winmd) |
 | Binding mode | `--flat --sys` | `--package --sys` | `--package --sys` |
-| Key new pattern | typedef-to-typedef | sub-header traverse | multi-library + opaque scale |
+| Key new pattern | typedef-to-typedef | sub-header traverse | multi-library + opaque scale + cross-winmd refs |

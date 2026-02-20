@@ -40,12 +40,11 @@ windows_link::link!("ssl" "C" fn OPENSSL_cipher_name(rfc_name : *const i8) -> *m
 windows_link::link!("ssl" "C" fn OPENSSL_init_ssl(opts : u64, settings : *const super::types:: OPENSSL_INIT_SETTINGS) -> i32);
 windows_link::link!("ssl" "C" fn OSSL_default_cipher_list() -> *mut i8);
 windows_link::link!("ssl" "C" fn OSSL_default_ciphersuites() -> *mut i8);
-#[cfg(all(feature = "crypto", feature = "types"))]
-windows_link::link!("ssl" "C" fn PEM_read_SSL_SESSION(out : *mut super::crypto:: _IO_FILE, x : *mut *mut SSL_SESSION, cb : *mut super::types:: pem_password_cb, u : *mut core::ffi::c_void) -> *mut SSL_SESSION);
+#[cfg(feature = "types")]
+windows_link::link!("ssl" "C" fn PEM_read_SSL_SESSION(out : *mut bnd_posix::posix::stdio:: _IO_FILE, x : *mut *mut SSL_SESSION, cb : *mut super::types:: pem_password_cb, u : *mut core::ffi::c_void) -> *mut SSL_SESSION);
 #[cfg(feature = "types")]
 windows_link::link!("ssl" "C" fn PEM_read_bio_SSL_SESSION(out : *mut super::types:: BIO, x : *mut *mut SSL_SESSION, cb : *mut super::types:: pem_password_cb, u : *mut core::ffi::c_void) -> *mut SSL_SESSION);
-#[cfg(feature = "crypto")]
-windows_link::link!("ssl" "C" fn PEM_write_SSL_SESSION(out : *mut super::crypto:: _IO_FILE, x : *const SSL_SESSION) -> i32);
+windows_link::link!("ssl" "C" fn PEM_write_SSL_SESSION(out : *mut bnd_posix::posix::stdio:: _IO_FILE, x : *const SSL_SESSION) -> i32);
 #[cfg(feature = "types")]
 windows_link::link!("ssl" "C" fn PEM_write_bio_SSL_SESSION(out : *mut super::types:: BIO, x : *const SSL_SESSION) -> i32);
 #[cfg(feature = "types")]
@@ -422,8 +421,7 @@ windows_link::link!("ssl" "C" fn SSL_SESSION_is_resumable(s : *const SSL_SESSION
 windows_link::link!("ssl" "C" fn SSL_SESSION_new() -> *mut SSL_SESSION);
 #[cfg(feature = "types")]
 windows_link::link!("ssl" "C" fn SSL_SESSION_print(fp : *mut super::types:: BIO, ses : *const SSL_SESSION) -> i32);
-#[cfg(feature = "crypto")]
-windows_link::link!("ssl" "C" fn SSL_SESSION_print_fp(fp : *mut super::crypto:: _IO_FILE, ses : *const SSL_SESSION) -> i32);
+windows_link::link!("ssl" "C" fn SSL_SESSION_print_fp(fp : *mut bnd_posix::posix::stdio:: _IO_FILE, ses : *const SSL_SESSION) -> i32);
 #[cfg(feature = "types")]
 windows_link::link!("ssl" "C" fn SSL_SESSION_print_keylog(bp : *mut super::types:: BIO, x : *const SSL_SESSION) -> i32);
 windows_link::link!("ssl" "C" fn SSL_SESSION_set1_alpn_selected(s : *mut SSL_SESSION, alpn : *const u8, len : u64) -> i32);
@@ -735,7 +733,7 @@ windows_link::link!("ssl" "C" fn SSL_rstate_string(s : *const super::types:: SSL
 windows_link::link!("ssl" "C" fn SSL_rstate_string_long(s : *const super::types:: SSL) -> *mut i8);
 windows_link::link!("ssl" "C" fn SSL_select_next_proto(out : *mut *mut u8, outlen : *mut u8, r#in : *const u8, inlen : u32, client : *const u8, client_len : u32) -> i32);
 #[cfg(feature = "types")]
-windows_link::link!("ssl" "C" fn SSL_sendfile(s : *mut super::types:: SSL, fd : i32, offset : i64, size : u64, flags : i32) -> i64);
+windows_link::link!("ssl" "C" fn SSL_sendfile(s : *mut super::types:: SSL, fd : i32, offset : bnd_posix::posix::types:: off_t, size : u64, flags : i32) -> bnd_posix::posix::types:: ssize_t);
 #[cfg(feature = "types")]
 windows_link::link!("ssl" "C" fn SSL_session_reused(s : *const super::types:: SSL) -> i32);
 #[cfg(feature = "types")]

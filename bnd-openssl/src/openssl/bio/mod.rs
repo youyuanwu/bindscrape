@@ -65,13 +65,11 @@ windows_link::link!("crypto" "C" fn BIO_do_connect_retry(bio : *mut super::types
 #[cfg(feature = "types")]
 windows_link::link!("crypto" "C" fn BIO_dump(b : *mut super::types:: BIO, bytes : *const core::ffi::c_void, len : i32) -> i32);
 windows_link::link!("crypto" "C" fn BIO_dump_cb(cb : *mut isize, u : *mut core::ffi::c_void, s : *const core::ffi::c_void, len : i32) -> i32);
-#[cfg(feature = "crypto")]
-windows_link::link!("crypto" "C" fn BIO_dump_fp(fp : *mut super::crypto:: _IO_FILE, s : *const core::ffi::c_void, len : i32) -> i32);
+windows_link::link!("crypto" "C" fn BIO_dump_fp(fp : *mut bnd_posix::posix::stdio:: _IO_FILE, s : *const core::ffi::c_void, len : i32) -> i32);
 #[cfg(feature = "types")]
 windows_link::link!("crypto" "C" fn BIO_dump_indent(b : *mut super::types:: BIO, bytes : *const core::ffi::c_void, len : i32, indent : i32) -> i32);
 windows_link::link!("crypto" "C" fn BIO_dump_indent_cb(cb : *mut isize, u : *mut core::ffi::c_void, s : *const core::ffi::c_void, len : i32, indent : i32) -> i32);
-#[cfg(feature = "crypto")]
-windows_link::link!("crypto" "C" fn BIO_dump_indent_fp(fp : *mut super::crypto:: _IO_FILE, s : *const core::ffi::c_void, len : i32, indent : i32) -> i32);
+windows_link::link!("crypto" "C" fn BIO_dump_indent_fp(fp : *mut bnd_posix::posix::stdio:: _IO_FILE, s : *const core::ffi::c_void, len : i32, indent : i32) -> i32);
 #[cfg(feature = "types")]
 windows_link::link!("crypto" "C" fn BIO_dup_chain(r#in : *mut super::types:: BIO) -> *mut super::types:: BIO);
 windows_link::link!("crypto" "C" fn BIO_f_buffer() -> *mut BIO_METHOD);
@@ -166,8 +164,8 @@ windows_link::link!("crypto" "C" fn BIO_new_ex(libctx : *mut super::types:: OSSL
 windows_link::link!("crypto" "C" fn BIO_new_fd(fd : i32, close_flag : i32) -> *mut super::types:: BIO);
 #[cfg(feature = "types")]
 windows_link::link!("crypto" "C" fn BIO_new_file(filename : *const i8, mode : *const i8) -> *mut super::types:: BIO);
-#[cfg(all(feature = "crypto", feature = "types"))]
-windows_link::link!("crypto" "C" fn BIO_new_fp(stream : *mut super::crypto:: _IO_FILE, close_flag : i32) -> *mut super::types:: BIO);
+#[cfg(feature = "types")]
+windows_link::link!("crypto" "C" fn BIO_new_fp(stream : *mut bnd_posix::posix::stdio:: _IO_FILE, close_flag : i32) -> *mut super::types:: BIO);
 #[cfg(feature = "types")]
 windows_link::link!("crypto" "C" fn BIO_new_from_core_bio(libctx : *mut super::types:: OSSL_LIB_CTX, corebio : *mut core::ffi::c_void) -> *mut super::types:: BIO);
 #[cfg(feature = "types")]

@@ -9,6 +9,7 @@ license.workspace = true
 readme = "README.md"
 
 [dependencies]
+bnd-posix = { path = "../bnd-posix", features = ["time", "stdio", "pthread", "types"] }
 windows-link.workspace = true
 
 [features]

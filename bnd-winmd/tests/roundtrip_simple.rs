@@ -8,9 +8,9 @@ static SIMPLE_WINMD: LazyLock<Vec<u8>> = LazyLock::new(|| {
     bnd_winmd::generate(&path).expect("generate simple winmd")
 });
 
-fn open_index() -> windows_metadata::reader::Index {
+fn open_index() -> windows_metadata::reader::TypeIndex {
     let file = windows_metadata::reader::File::new(SIMPLE_WINMD.clone()).expect("parse winmd");
-    windows_metadata::reader::Index::new(vec![file])
+    windows_metadata::reader::TypeIndex::new(vec![file])
 }
 
 #[test]
@@ -20,7 +20,7 @@ fn roundtrip_typedefs_present() {
 
     // Collect all type names
     let types: Vec<(String, String)> = index
-        .all()
+        .types()
         .map(|td| (td.namespace().to_string(), td.name().to_string()))
         .collect();
 

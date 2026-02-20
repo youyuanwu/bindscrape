@@ -4,6 +4,12 @@ include_paths = ["/usr/include/x86_64-linux-gnu", "/usr/include"]
 name = "openssl"
 file = "openssl.winmd"
 
+# Import POSIX types from the bnd-posix winmd so that struct tm, _IO_FILE,
+# etc. are emitted as TypeRefs instead of being extracted locally.
+[[type_import]]
+winmd = "../bnd-posix/winmd/bnd-posix.winmd"
+namespace = "posix"
+
 # Partition 1: Opaque type forward declarations
 # 120 typedef struct foo_st FOO patterns — no functions
 [[partition]]
@@ -17,7 +23,7 @@ traverse = ["openssl/types.h"]
 namespace = "openssl.crypto"
 library = "crypto"
 headers = ["openssl/crypto.h"]
-traverse = ["openssl/crypto.h", "bits/types/struct_tm.h", "bits/types/struct_FILE.h"]
+traverse = ["openssl/crypto.h"]
 
 # Partition 3: Random number generation
 [[partition]]

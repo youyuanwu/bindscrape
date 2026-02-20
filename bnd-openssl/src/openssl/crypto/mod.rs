@@ -79,9 +79,9 @@ windows_link::link!("crypto" "C" fn OPENSSL_die(assertion : *const i8, file : *c
 windows_link::link!("crypto" "C" fn OPENSSL_fork_child());
 windows_link::link!("crypto" "C" fn OPENSSL_fork_parent());
 windows_link::link!("crypto" "C" fn OPENSSL_fork_prepare());
-windows_link::link!("crypto" "C" fn OPENSSL_gmtime(timer : *const i64, result : *mut tm) -> *mut tm);
-windows_link::link!("crypto" "C" fn OPENSSL_gmtime_adj(tm : *mut tm, offset_day : i32, offset_sec : i64) -> i32);
-windows_link::link!("crypto" "C" fn OPENSSL_gmtime_diff(pday : *mut i32, psec : *mut i32, from : *const tm, to : *const tm) -> i32);
+windows_link::link!("crypto" "C" fn OPENSSL_gmtime(timer : *const i64, result : *mut bnd_posix::posix::time:: tm) -> *mut bnd_posix::posix::time:: tm);
+windows_link::link!("crypto" "C" fn OPENSSL_gmtime_adj(tm : *mut bnd_posix::posix::time:: tm, offset_day : i32, offset_sec : i64) -> i32);
+windows_link::link!("crypto" "C" fn OPENSSL_gmtime_diff(pday : *mut i32, psec : *mut i32, from : *const bnd_posix::posix::time:: tm, to : *const bnd_posix::posix::time:: tm) -> i32);
 windows_link::link!("crypto" "C" fn OPENSSL_hexchar2int(c : u8) -> i32);
 windows_link::link!("crypto" "C" fn OPENSSL_hexstr2buf(str : *const i8, buflen : *mut i64) -> *mut u8);
 windows_link::link!("crypto" "C" fn OPENSSL_hexstr2buf_ex(buf : *mut u8, buf_n : u64, buflen : *mut u64, str : *const i8, sep : i8) -> i32);
@@ -179,7 +179,7 @@ pub type CRYPTO_EX_new = Option<
     ),
 >;
 pub const CRYPTO_LOCK: i32 = 1i32;
-pub type CRYPTO_ONCE = i32;
+pub type CRYPTO_ONCE = bnd_posix::posix::pthread::pthread_once_t;
 pub const CRYPTO_READ: i32 = 4i32;
 pub type CRYPTO_RWLOCK = isize;
 #[repr(C)]
@@ -187,8 +187,8 @@ pub type CRYPTO_RWLOCK = isize;
 pub struct CRYPTO_THREADID {
     pub Value: crypto_threadid_st,
 }
-pub type CRYPTO_THREAD_ID = u64;
-pub type CRYPTO_THREAD_LOCAL = u32;
+pub type CRYPTO_THREAD_ID = bnd_posix::posix::pthread::pthread_t;
+pub type CRYPTO_THREAD_LOCAL = bnd_posix::posix::pthread::pthread_key_t;
 pub const CRYPTO_UNLOCK: i32 = 2i32;
 pub const CRYPTO_WRITE: i32 = 8i32;
 #[repr(C, packed(4))]
@@ -250,50 +250,6 @@ pub const OPENSSL_MODULES_DIR: i32 = 8i32;
 pub const OPENSSL_PLATFORM: i32 = 3i32;
 pub const OPENSSL_VERSION: i32 = 0i32;
 pub const OPENSSL_VERSION_STRING: i32 = 6i32;
-pub const _IO_EOF_SEEN: i32 = 16i32;
-pub const _IO_ERR_SEEN: i32 = 32i32;
-#[repr(C, packed(8))]
-#[derive(Clone, Copy)]
-pub struct _IO_FILE {
-    pub _flags: i32,
-    pub _IO_read_ptr: *mut i8,
-    pub _IO_read_end: *mut i8,
-    pub _IO_read_base: *mut i8,
-    pub _IO_write_base: *mut i8,
-    pub _IO_write_ptr: *mut i8,
-    pub _IO_write_end: *mut i8,
-    pub _IO_buf_base: *mut i8,
-    pub _IO_buf_end: *mut i8,
-    pub _IO_save_base: *mut i8,
-    pub _IO_backup_base: *mut i8,
-    pub _IO_save_end: *mut i8,
-    pub _markers: *mut core::ffi::c_void,
-    pub _chain: *mut _IO_FILE,
-    pub _fileno: i32,
-    pub _flags2: i32,
-    pub _old_offset: i64,
-    pub _cur_column: u16,
-    pub _vtable_offset: i8,
-    pub _shortbuf: [i8; 1],
-    pub _lock: *mut _IO_lock_t,
-    pub _offset: i64,
-    pub _codecvt: *mut core::ffi::c_void,
-    pub _wide_data: *mut core::ffi::c_void,
-    pub _freeres_list: *mut _IO_FILE,
-    pub _freeres_buf: *mut core::ffi::c_void,
-    pub __pad5: u64,
-    pub _mode: i32,
-    pub _unused2: [i8; 20],
-}
-impl Default for _IO_FILE {
-    fn default() -> Self {
-        unsafe { core::mem::zeroed() }
-    }
-}
-pub const _IO_USER_LOCK: i32 = 32768i32;
-pub type _IO_lock_t = isize;
-pub const __struct_FILE_defined: i32 = 1i32;
-pub const __struct_tm_defined: i32 = 1i32;
 #[repr(C, packed(8))]
 #[cfg(feature = "types")]
 #[derive(Clone, Copy)]
@@ -321,23 +277,3 @@ pub type sk_void_compfunc = Option<
 pub type sk_void_copyfunc =
     Option<unsafe extern "system" fn(param0: *const core::ffi::c_void) -> *mut core::ffi::c_void>;
 pub type sk_void_freefunc = Option<unsafe extern "system" fn(param0: *const core::ffi::c_void)>;
-#[repr(C, packed(8))]
-#[derive(Clone, Copy)]
-pub struct tm {
-    pub tm_sec: i32,
-    pub tm_min: i32,
-    pub tm_hour: i32,
-    pub tm_mday: i32,
-    pub tm_mon: i32,
-    pub tm_year: i32,
-    pub tm_wday: i32,
-    pub tm_yday: i32,
-    pub tm_isdst: i32,
-    pub tm_gmtoff: i64,
-    pub tm_zone: *mut i8,
-}
-impl Default for tm {
-    fn default() -> Self {
-        unsafe { core::mem::zeroed() }
-    }
-}

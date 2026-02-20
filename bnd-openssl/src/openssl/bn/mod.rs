@@ -329,8 +329,8 @@ windows_link::link!("crypto" "C" fn BN_num_bits_word(l : u64) -> i32);
 windows_link::link!("crypto" "C" fn BN_options() -> *mut i8);
 #[cfg(feature = "types")]
 windows_link::link!("crypto" "C" fn BN_print(bio : *mut super::types:: BIO, a : *const super::types:: BIGNUM) -> i32);
-#[cfg(all(feature = "crypto", feature = "types"))]
-windows_link::link!("crypto" "C" fn BN_print_fp(fp : *mut super::crypto:: _IO_FILE, a : *const super::types:: BIGNUM) -> i32);
+#[cfg(feature = "types")]
+windows_link::link!("crypto" "C" fn BN_print_fp(fp : *mut bnd_posix::posix::stdio:: _IO_FILE, a : *const super::types:: BIGNUM) -> i32);
 #[cfg(feature = "types")]
 windows_link::link!("crypto" "C" fn BN_priv_rand(rnd : *mut super::types:: BIGNUM, bits : i32, top : i32, bottom : i32) -> i32);
 #[cfg(feature = "types")]

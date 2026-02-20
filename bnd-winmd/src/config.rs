@@ -115,24 +115,24 @@ pub fn resolve_header(path: &Path, base_dir: &Path, include_paths: &[PathBuf]) -
 }
 
 /// External winmd type imports (cross-winmd references).
+///
+/// Pre-seeds the `TypeRegistry` with types from an external winmd so that
+/// `ctype_to_wintype()` emits TypeRef rows instead of falling back to the
+/// resolved canonical type.
+///
+/// ```toml
+/// [[type_import]]
+/// winmd = "../bnd-posix/winmd/bnd-posix.winmd"
+/// namespace = "posix"
+/// ```
 #[derive(Debug, Deserialize)]
 pub struct TypeImportConfig {
-    /// Assembly name (e.g. `Windows.Win32`).
-    pub assembly: String,
-    /// Version string (e.g. `0.1.0.0`).
-    #[serde(default)]
-    pub version: Option<String>,
-    /// Types to import from this assembly.
-    pub types: Vec<ImportedType>,
-}
-
-/// A single imported type.
-#[derive(Debug, Deserialize)]
-pub struct ImportedType {
-    pub name: String,
+    /// Path to the external `.winmd` file (resolved relative to the TOML
+    /// file's directory, i.e. `base_dir`).
+    pub winmd: PathBuf,
+    /// Root namespace filter — only types under this namespace tree are
+    /// imported into the registry.
     pub namespace: String,
-    #[serde(default)]
-    pub interface: bool,
 }
 
 /// Load and parse a `bnd-winmd.toml` configuration file.

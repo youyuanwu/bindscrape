@@ -8,9 +8,9 @@ static MULTI_WINMD: LazyLock<Vec<u8>> = LazyLock::new(|| {
     bnd_winmd::generate(&path).expect("generate multi winmd")
 });
 
-fn open_multi_index() -> windows_metadata::reader::Index {
+fn open_multi_index() -> windows_metadata::reader::TypeIndex {
     let file = windows_metadata::reader::File::new(MULTI_WINMD.clone()).expect("parse multi winmd");
-    windows_metadata::reader::Index::new(vec![file])
+    windows_metadata::reader::TypeIndex::new(vec![file])
 }
 
 #[test]
@@ -20,7 +20,7 @@ fn multi_types_in_correct_namespace() {
 
     // Types partition: Color, Rect, CompareFunc should be in MultiTest.Types
     let types: Vec<(String, String)> = index
-        .all()
+        .types()
         .map(|td| (td.namespace().to_string(), td.name().to_string()))
         .collect();
 
@@ -49,7 +49,7 @@ fn multi_widgets_in_correct_namespace() {
     let index = open_multi_index();
 
     let types: Vec<(String, String)> = index
-        .all()
+        .types()
         .map(|td| (td.namespace().to_string(), td.name().to_string()))
         .collect();
 
@@ -76,7 +76,7 @@ fn multi_traverse_filtering() {
     let index = open_multi_index();
 
     let types: Vec<(String, String)> = index
-        .all()
+        .types()
         .map(|td| (td.namespace().to_string(), td.name().to_string()))
         .collect();
 
