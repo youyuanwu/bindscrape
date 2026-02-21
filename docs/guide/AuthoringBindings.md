@@ -82,6 +82,27 @@ headers = ["zstd.h", "zdict.h"]
 traverse = ["zdict.h"]
 ```
 
+### Cross-library type imports
+
+If your library's headers reference types from another library that already
+has a `bnd-*` crate (e.g. POSIX types), use `[[type_import]]` to import
+those types instead of re-extracting them:
+
+```toml
+[[type_import]]
+winmd = "path/to/bnd-posix.winmd"
+namespace = "posix"
+```
+
+| Field | Meaning |
+|---|---|
+| `winmd` | Path to the external `.winmd` file (relative to the TOML file) |
+| `namespace` | Root namespace filter — only types under this namespace are imported |
+
+Imported types are emitted as cross-crate references in the generated
+bindings (e.g. `bnd_posix::posix::…`). Pass `--reference <crate>` to
+`windows-bindgen` for each external crate.
+
 ---
 
 ## Step 3: Generate bindings
@@ -168,14 +189,16 @@ All function bindings are `unsafe` — they call directly into the C library.
 ## Traverse tips
 
 - Start with just the main header in `traverse`.
-- Add sub-headers iteratively when the generator fails with "type not found".
+- If bnd-winmd reports unresolved type references, add the header that
+  defines each missing type to `traverse` (or add a `[[type_import]]` for
+  types from an external library).
 - Use `RUST_LOG=bnd_winmd=debug` to see what is extracted/skipped.
 
 ## Common issues
 
 | Problem | Fix |
 |---|---|
-| "type not found: foo" panic | Add the header defining `foo` to `traverse` |
+| "N unresolved type reference(s) found" | Add the header defining each type to `traverse`, or add a `[[type_import]]` for types from an external winmd |
 | Variadic function warnings | Expected — variadic functions are auto-skipped |
 | Struct with inline anonymous union | May need manual workaround |
 | Wrong library linked | Check `library` in partition and `build.rs` link directives |

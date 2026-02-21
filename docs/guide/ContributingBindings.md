@@ -46,6 +46,10 @@ traverse = ["zstd.h"]
 See [AuthoringBindings.md § TOML config](AuthoringBindings.md#step-2-write-the-toml-config)
 for field reference and multi-partition examples.
 
+If your library depends on types from another `bnd-*` crate (e.g. POSIX
+types), add a `[[type_import]]` section — see
+[AuthoringBindings.md § Cross-library type imports](AuthoringBindings.md#cross-library-type-imports).
+
 ---
 
 ## Step 2: Create the product crate
@@ -174,6 +178,10 @@ Use debug logging to troubleshoot:
 ```sh
 RUST_LOG=bnd_winmd=debug cargo run -p bnd-zstd-gen
 ```
+
+If bnd-winmd reports unresolved type references, add the header that
+defines each missing type to the partition's `traverse` list, or add a
+`[[type_import]]` for types from an external winmd.
 
 Inspect `bnd-zstd/src/zstd/` — verify function signatures, struct layouts,
 and constants.
